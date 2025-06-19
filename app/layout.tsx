@@ -12,7 +12,6 @@ import "lumir-design-system-02/styles";
 import "lumir-design-system-02/tokens";
 
 // 4. 컴포넌트 임포트
-import { Frame, Surface } from "lumir-design-system-shared";
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 
@@ -33,26 +32,20 @@ export default function RootLayout({
     <html lang="ko" data-theme="light">
       <head>
         <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#ffffff" />
       </head>
       <body className={geistSans.variable}>
-        <Surface
-          as="div"
-          className="flex flex-col min-h-screen"
-          background="secondary-system01-1-rest"
-        >
-          <Header />
-          <Frame direction="row" className="flex flex-1">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30">
+          <div className="flex h-screen">
             <Sidebar />
-            <Surface
-              as="main"
-              className="flex-1 p-6 overflow-y-auto"
-              background="secondary-system01-2-rest"
-              boxShadow="10"
-            >
-              {children}
-            </Surface>
-          </Frame>
-        </Surface>
+            <div className="flex-1 flex flex-col min-w-0">
+              <Header />
+              <main className="flex-1 overflow-auto p-8 bg-white/40 backdrop-blur-sm">
+                {children}
+              </main>
+            </div>
+          </div>
+        </div>
       </body>
     </html>
   );

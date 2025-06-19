@@ -3,12 +3,15 @@ export type ApproverType =
   | "DEPARTMENT_POSITION"
   | "POSITION"
   | "TITLE";
+
 export type DepartmentScopeType = "SELECTED" | "DRAFT_OWNER";
+
 export type ApprovalStepType =
   | "APPROVAL"
   | "AGREEMENT"
   | "EXECUTION"
   | "REFERENCE";
+
 export type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
 export type ApprovalLineType = "COMMON" | "CUSTOM";
 
