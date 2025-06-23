@@ -1,0 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+use tailwindcss.
+
+use design system referencing where tainwind.config.ts in root directory
