@@ -1,8 +1,7 @@
 // 인증 관련 API 호출 함수
 
 import { LoginResponse, AuthUser } from "../auth/auth-utils";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import { ApiClient, ApiResponse } from "./api-client";
 
 // 로그인 API 호출
 export const loginApi = async (
@@ -10,21 +9,12 @@ export const loginApi = async (
   password: string
 ): Promise<LoginResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || "로그인에 실패했습니다.");
-    }
-
-    return data;
+    const response = await ApiClient.post<LoginResponse>(
+      "/api/auth/login",
+      { email, password },
+      false // 인증 불필요
+    );
+    return response;
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(error.message);
@@ -36,27 +26,8 @@ export const loginApi = async (
 // 사용자 정보 조회 API 호출
 export const getUserInfoApi = async (): Promise<AuthUser> => {
   try {
-    const token = localStorage.getItem("accessToken");
-
-    if (!token) {
-      throw new Error("인증 토큰이 없습니다.");
-    }
-
-    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || "사용자 정보 조회에 실패했습니다.");
-    }
-
-    return data.data;
+    const response = await ApiClient.get<ApiResponse<AuthUser>>("/api/auth/me");
+    return response.data;
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(error.message);
@@ -68,27 +39,10 @@ export const getUserInfoApi = async (): Promise<AuthUser> => {
 // 토큰 갱신 API 호출 (필요시)
 export const refreshTokenApi = async (): Promise<{ accessToken: string }> => {
   try {
-    const token = localStorage.getItem("accessToken");
-
-    if (!token) {
-      throw new Error("인증 토큰이 없습니다.");
-    }
-
-    const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || "토큰 갱신에 실패했습니다.");
-    }
-
-    return data.data;
+    const response = await ApiClient.post<ApiResponse<{ accessToken: string }>>(
+      "/api/auth/refresh"
+    );
+    return response.data;
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(error.message);

@@ -12,41 +12,38 @@ import {
 } from "../../_lib/api/document-api";
 
 export default function ApprovalLinesPage() {
-  const [activeTab, setActiveTab] = useState("common");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedApprovalLine, setSelectedApprovalLine] =
     useState<FormApprovalLine | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  // const [searchTerm, setSearchTerm] = useState("");
 
   const {
+    approvalLines,
+    paginationMeta,
+    currentType,
     loading,
     createApprovalLine,
     updateApprovalLine,
     deleteApprovalLine,
-    getCommonApprovalLines,
-    getCustomApprovalLines,
+    handlePageChange,
+    handleTypeChange,
+    // handleSearch,
   } = useApprovalLines();
 
-  // 현재 탭에 따른 결재선 목록 필터링
-  const getCurrentApprovalLines = () => {
-    const lines =
-      activeTab === "common"
-        ? getCommonApprovalLines()
-        : getCustomApprovalLines();
-
-    // 검색어 필터링
-    if (searchTerm.trim()) {
-      return lines.filter(
-        (line) =>
-          line.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          line.description?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    return lines;
+  // 탭 변경 핸들러
+  const handleTabChange = (tab: string) => {
+    const type = tab === "common" ? "COMMON" : "CUSTOM";
+    handleTypeChange(type);
   };
+
+  // 검색어 변경 핸들러
+  // const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const value = e.target.value;
+  //   setSearchTerm(value);
+  //   handleSearch(value);
+  // };
 
   const handleCreate = async (
     data: CreateFormApprovalLineRequest | UpdateFormApprovalLineRequest
@@ -89,17 +86,99 @@ export default function ApprovalLinesPage() {
     }
   };
 
-  const handleView = (approvalLine: FormApprovalLine) => {
-    setSelectedApprovalLine(approvalLine);
-    setIsDetailModalOpen(true);
-  };
-
   const handleEditClick = (approvalLine: FormApprovalLine) => {
     setSelectedApprovalLine(approvalLine);
     setIsEditModalOpen(true);
   };
 
-  const currentApprovalLines = getCurrentApprovalLines();
+  // 검색어가 있을 때는 페이지네이션을 숨기고 필터링된 결과만 표시
+  // const shouldShowPagination = !searchTerm.trim();
+
+  // 페이지네이션 렌더링
+  const renderPagination = () => {
+    // !shouldShowPagination ||
+    if (!paginationMeta) return null;
+
+    const { total, page, limit, hasNext } = paginationMeta;
+    const totalPages = Math.ceil(total / limit);
+    const startPage = Math.max(1, page - 2);
+    const endPage = Math.min(totalPages, page + 2);
+
+    return (
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-secondary">
+          총 {total}개 중 {(page - 1) * limit + 1}-
+          {Math.min(page * limit, total)}개 표시
+        </div>
+        <div className="flex items-center space-x-2">
+          {/* 이전 페이지 버튼 */}
+          <button
+            onClick={() => handlePageChange(page - 1)}
+            disabled={page <= 1}
+            className="px-3 py-1 text-sm border border-border rounded hover:bg-surface disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            이전
+          </button>
+
+          {/* 페이지 번호들 */}
+          {startPage > 1 && (
+            <>
+              <button
+                onClick={() => handlePageChange(1)}
+                className="px-3 py-1 text-sm border border-border rounded hover:bg-surface transition-colors"
+              >
+                1
+              </button>
+              {startPage > 2 && (
+                <span className="px-2 text-secondary">...</span>
+              )}
+            </>
+          )}
+
+          {Array.from(
+            { length: endPage - startPage + 1 },
+            (_, i) => startPage + i
+          ).map((pageNum) => (
+            <button
+              key={pageNum}
+              onClick={() => handlePageChange(pageNum)}
+              className={`px-3 py-1 text-sm border rounded transition-colors ${
+                pageNum === page
+                  ? "bg-primary text-white border-primary"
+                  : "border-border hover:bg-surface"
+              }`}
+            >
+              {pageNum}
+            </button>
+          ))}
+
+          {endPage < totalPages && (
+            <>
+              {endPage < totalPages - 1 && (
+                <span className="px-2 text-secondary">...</span>
+              )}
+              <button
+                onClick={() => handlePageChange(totalPages)}
+                className="px-3 py-1 text-sm border border-border rounded hover:bg-surface transition-colors"
+              >
+                {totalPages}
+              </button>
+            </>
+          )}
+
+          {/* 다음 페이지 버튼 */}
+          <button
+            onClick={() => handlePageChange(page + 1)}
+            disabled={!hasNext}
+            className="px-3 py-1 text-sm border border-border rounded hover:bg-surface disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            다음
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* 페이지 헤더 */}
@@ -116,63 +195,60 @@ export default function ApprovalLinesPage() {
         </button>
       </div>
 
-      {/* 에러 메시지 */}
-      {/* {error && (
-        <div className="p-4 bg-danger/10 border border-danger/20 rounded-lg text-danger">
-          {error}
-        </div>
-      )} */}
-
       {/* 탭 네비게이션 */}
       <div className="border-b border-border">
         <nav className="flex space-x-8">
           <button
-            onClick={() => setActiveTab("common")}
+            onClick={() => handleTabChange("personal")}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === "common"
-                ? "border-primary text-primary"
-                : "border-transparent text-secondary hover:text-primary hover:border-border"
-            }`}
-          >
-            공통 결재선
-          </button>
-          <button
-            onClick={() => setActiveTab("personal")}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === "personal"
+              currentType === "CUSTOM"
                 ? "border-primary text-primary"
                 : "border-transparent text-secondary hover:text-primary hover:border-border"
             }`}
           >
             내 결재선
           </button>
+          <button
+            onClick={() => handleTabChange("common")}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              currentType === "COMMON"
+                ? "border-primary text-primary"
+                : "border-transparent text-secondary hover:text-primary hover:border-border"
+            }`}
+          >
+            공통 결재선
+          </button>
         </nav>
       </div>
 
       {/* 검색 및 필터 */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      {/* <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <input
             type="text"
             placeholder="결재선 이름으로 검색"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={handleSearchChange}
             className="w-full px-4 py-2 border border-border rounded-lg bg-surface text-primary placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           />
         </div>
         <div className="text-sm text-secondary flex items-center">
-          총 {currentApprovalLines.length}개의 결재선
+          {searchTerm.trim()
+            ? `검색 결과: ${approvalLines.length}개의 결재선`
+            : `총 ${paginationMeta?.total || 0}개의 결재선`}
         </div>
-      </div>
+      </div> */}
 
       {/* 결재선 목록 */}
       <ApprovalLineTable
-        approvalLines={currentApprovalLines}
-        onView={handleView}
+        approvalLines={approvalLines}
         onEdit={handleEditClick}
         onDelete={handleDelete}
         loading={loading}
       />
+
+      {/* 페이지네이션 */}
+      {renderPagination()}
 
       {/* 결재선 생성 다이얼로그 */}
       <ApprovalLineDialog
