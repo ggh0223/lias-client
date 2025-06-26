@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutContainer, Sidebar } from "@lumir-company/design-system-v0/dist";
+import {
+  LayoutContainer,
+  Sidebar,
+  DesignSettingsProvider,
+  useDesignSettings,
+} from "@lumir-company/design-system-v0/dist";
 
 // 메뉴 그룹 정의
 const menuGroups = [
@@ -161,11 +166,7 @@ interface ClientLayoutProps {
   onLogout?: () => void;
 }
 
-export default function ClientLayout({
-  children,
-  user,
-  onLogout,
-}: ClientLayoutProps) {
+export function ClientLayout({ children, user, onLogout }: ClientLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -186,6 +187,9 @@ export default function ClientLayout({
     setIsAdminMode(!isAdminMode);
     console.log("모드 전환:", !isAdminMode ? "관리자" : "사용자");
   };
+
+  const { setRadius } = useDesignSettings();
+  setRadius(0);
 
   return (
     <div className="flex w-full h-screen bg-background text-foreground">
@@ -215,5 +219,17 @@ export default function ClientLayout({
         </LayoutContainer>
       </main>
     </div>
+  );
+}
+
+export default function ClientLayoutProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <DesignSettingsProvider>
+      <ClientLayout>{children}</ClientLayout>
+    </DesignSettingsProvider>
   );
 }

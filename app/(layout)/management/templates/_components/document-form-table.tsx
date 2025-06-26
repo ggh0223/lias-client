@@ -27,22 +27,6 @@ const PreviewModal = ({
       // 템플릿의 플레이스홀더를 실제 데이터로 치환
       let html = form.template;
 
-      // 수신자 정보 치환
-      const receiverNames = form.receiverInfo.map((emp) => emp.name).join(", ");
-      html = html.replace(
-        /\{\{receiverInfo\}\}/g,
-        receiverNames || "수신자 미지정"
-      );
-
-      // 시행자 정보 치환
-      const implementerNames = form.implementerInfo
-        .map((emp) => emp.name)
-        .join(", ");
-      html = html.replace(
-        /\{\{implementerInfo\}\}/g,
-        implementerNames || "시행자 미지정"
-      );
-
       // 카테고리 정보 치환
       html = html.replace(/\{\{documentType\}\}/g, form.documentType.name);
       html = html.replace(
@@ -90,6 +74,28 @@ const PreviewModal = ({
         html = html.replace(
           /\{\{agreementStepsOnly\}\}/g,
           agreementStepsOnly || "합의자 미지정"
+        );
+
+        // 시행자 정보 치환
+        const implementationStepsOnly = form.formApprovalLine.formApprovalSteps
+          .filter((step) => step.type === "IMPLEMENTATION")
+          .sort((a, b) => a.order - b.order)
+          .map((step) => step.defaultApprover.name)
+          .join(" → ");
+        html = html.replace(
+          /\{\{implementationStepsOnly\}\}/g,
+          implementationStepsOnly || "시행자 미지정"
+        );
+
+        // 수신자/참조자 정보 치환
+        const referenceStepsOnly = form.formApprovalLine.formApprovalSteps
+          .filter((step) => step.type === "REFERENCE")
+          .sort((a, b) => a.order - b.order)
+          .map((step) => step.defaultApprover.name)
+          .join(" → ");
+        html = html.replace(
+          /\{\{referenceStepsOnly\}\}/g,
+          referenceStepsOnly || "수신자/참조자 미지정"
         );
       }
 
@@ -141,22 +147,6 @@ const PreviewModal = ({
               </span>
             </div>
             <div>
-              <span className="text-secondary">수신자:</span>
-              <span className="ml-2 text-primary">
-                {form.receiverInfo.length > 0
-                  ? form.receiverInfo.map((emp) => emp.name).join(", ")
-                  : "미지정"}
-              </span>
-            </div>
-            <div>
-              <span className="text-secondary">시행자:</span>
-              <span className="ml-2 text-primary">
-                {form.implementerInfo.length > 0
-                  ? form.implementerInfo.map((emp) => emp.name).join(", ")
-                  : "미지정"}
-              </span>
-            </div>
-            <div>
               <span className="text-secondary">결재선:</span>
               <span className="ml-2 text-primary">
                 {form.formApprovalLine?.name || "미지정"}
@@ -166,6 +156,14 @@ const PreviewModal = ({
               <span className="text-secondary">결재선 타입:</span>
               <span className="ml-2 text-primary">
                 {form.formApprovalLine?.type || "미지정"}
+              </span>
+            </div>
+            <div>
+              <span className="text-secondary">자동 채우기:</span>
+              <span className="ml-2 text-primary">
+                {form.autoFillType === "NONE" && "자동 채우기 없음"}
+                {form.autoFillType === "DRAFTER_ONLY" && "기안자만"}
+                {form.autoFillType === "DRAFTER_SUPERIOR" && "기안자 + 상급자"}
               </span>
             </div>
             <div>
@@ -183,6 +181,26 @@ const PreviewModal = ({
               <span className="ml-2 text-primary">
                 {form.formApprovalLine?.formApprovalSteps
                   .filter((step) => step.type === "AGREEMENT")
+                  .sort((a, b) => a.order - b.order)
+                  .map((step) => step.defaultApprover.name)
+                  .join(" → ") || "미지정"}
+              </span>
+            </div>
+            <div>
+              <span className="text-secondary">시행자:</span>
+              <span className="ml-2 text-primary">
+                {form.formApprovalLine?.formApprovalSteps
+                  .filter((step) => step.type === "IMPLEMENTATION")
+                  .sort((a, b) => a.order - b.order)
+                  .map((step) => step.defaultApprover.name)
+                  .join(" → ") || "미지정"}
+              </span>
+            </div>
+            <div>
+              <span className="text-secondary">수신자/참조자:</span>
+              <span className="ml-2 text-primary">
+                {form.formApprovalLine?.formApprovalSteps
+                  .filter((step) => step.type === "REFERENCE")
                   .sort((a, b) => a.order - b.order)
                   .map((step) => step.defaultApprover.name)
                   .join(" → ") || "미지정"}
@@ -281,13 +299,22 @@ export const DocumentFormTable = ({
                 카테고리
               </th>
               <th className="text-left p-3 text-sm font-medium text-primary">
-                수신자/참조자
+                결재선
+              </th>
+              <th className="text-left p-3 text-sm font-medium text-primary">
+                자동 채우기
+              </th>
+              <th className="text-left p-3 text-sm font-medium text-primary">
+                결재자
+              </th>
+              <th className="text-left p-3 text-sm font-medium text-primary">
+                합의자
               </th>
               <th className="text-left p-3 text-sm font-medium text-primary">
                 시행자
               </th>
               <th className="text-left p-3 text-sm font-medium text-primary">
-                결재선
+                수신자/참조자
               </th>
               <th className="text-left p-3 text-sm font-medium text-primary">
                 작업
@@ -313,42 +340,138 @@ export const DocumentFormTable = ({
                 <td className="p-3 text-sm text-primary">
                   {form.documentType.name}
                 </td>
-                <td className="p-3">
-                  <div className="flex flex-wrap gap-1">
-                    {form.receiverInfo.slice(0, 2).map((employee) => (
-                      <span
-                        key={employee.employeeId}
-                        className="text-xs bg-primary/10 text-primary px-2 py-1 rounded"
-                      >
-                        {employee.name}
-                      </span>
-                    ))}
-                    {form.receiverInfo.length > 2 && (
-                      <span className="text-xs text-secondary">
-                        +{form.receiverInfo.length - 2}명
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td className="p-3">
-                  <div className="flex flex-wrap gap-1">
-                    {form.implementerInfo.slice(0, 2).map((employee) => (
-                      <span
-                        key={employee.employeeId}
-                        className="text-xs bg-secondary/10 text-secondary px-2 py-1 rounded"
-                      >
-                        {employee.name}
-                      </span>
-                    ))}
-                    {form.implementerInfo.length > 2 && (
-                      <span className="text-xs text-secondary">
-                        +{form.implementerInfo.length - 2}명
-                      </span>
-                    )}
-                  </div>
-                </td>
                 <td className="p-3 text-sm text-primary">
                   {form.formApprovalLine?.name || "미지정"}
+                </td>
+                <td className="p-3 text-sm text-primary">
+                  {form.autoFillType === "NONE" && "자동 채우기 없음"}
+                  {form.autoFillType === "DRAFTER_ONLY" && "기안자만"}
+                  {form.autoFillType === "DRAFTER_SUPERIOR" &&
+                    "기안자 + 상급자"}
+                </td>
+                <td className="p-3">
+                  <div className="flex flex-wrap gap-1">
+                    {form.formApprovalLine?.formApprovalSteps
+                      ?.filter((step) => step.type === "APPROVAL")
+                      .sort((a, b) => a.order - b.order)
+                      .slice(0, 2)
+                      .map((step) => (
+                        <span
+                          key={step.formApprovalStepId}
+                          className="text-xs bg-primary/10 text-primary px-2 py-1 rounded"
+                        >
+                          {step.defaultApprover.name}
+                        </span>
+                      ))}
+                    {form.formApprovalLine?.formApprovalSteps &&
+                      form.formApprovalLine?.formApprovalSteps?.filter(
+                        (step) => step.type === "APPROVAL"
+                      )?.length &&
+                      form.formApprovalLine?.formApprovalSteps?.filter(
+                        (step) => step.type === "APPROVAL"
+                      )?.length > 2 && (
+                        <span className="text-xs text-secondary">
+                          +
+                          {form.formApprovalLine?.formApprovalSteps?.filter(
+                            (step) => step.type === "APPROVAL"
+                          ).length - 2}
+                          명
+                        </span>
+                      )}
+                  </div>
+                </td>
+                <td className="p-3">
+                  <div className="flex flex-wrap gap-1">
+                    {form.formApprovalLine?.formApprovalSteps
+                      ?.filter((step) => step.type === "AGREEMENT")
+                      .sort((a, b) => a.order - b.order)
+                      .slice(0, 2)
+                      .map((step) => (
+                        <span
+                          key={step.formApprovalStepId}
+                          className="text-xs bg-secondary/10 text-secondary px-2 py-1 rounded"
+                        >
+                          {step.defaultApprover.name}
+                        </span>
+                      ))}
+                    {form.formApprovalLine?.formApprovalSteps &&
+                      form.formApprovalLine?.formApprovalSteps?.filter(
+                        (step) => step.type === "AGREEMENT"
+                      )?.length &&
+                      form.formApprovalLine?.formApprovalSteps?.filter(
+                        (step) => step.type === "AGREEMENT"
+                      )?.length > 2 && (
+                        <span className="text-xs text-secondary">
+                          +
+                          {form.formApprovalLine?.formApprovalSteps?.filter(
+                            (step) => step.type === "AGREEMENT"
+                          ).length - 2}
+                          명
+                        </span>
+                      )}
+                  </div>
+                </td>
+                <td className="p-3">
+                  <div className="flex flex-wrap gap-1">
+                    {form.formApprovalLine?.formApprovalSteps
+                      ?.filter((step) => step.type === "IMPLEMENTATION")
+                      .sort((a, b) => a.order - b.order)
+                      .slice(0, 2)
+                      .map((step) => (
+                        <span
+                          key={step.formApprovalStepId}
+                          className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded"
+                        >
+                          {step.defaultApprover.name}
+                        </span>
+                      ))}
+                    {form.formApprovalLine?.formApprovalSteps &&
+                      form.formApprovalLine?.formApprovalSteps?.filter(
+                        (step) => step.type === "IMPLEMENTATION"
+                      )?.length &&
+                      form.formApprovalLine?.formApprovalSteps?.filter(
+                        (step) => step.type === "IMPLEMENTATION"
+                      )?.length > 2 && (
+                        <span className="text-xs text-secondary">
+                          +
+                          {form.formApprovalLine?.formApprovalSteps?.filter(
+                            (step) => step.type === "IMPLEMENTATION"
+                          ).length - 2}
+                          명
+                        </span>
+                      )}
+                  </div>
+                </td>
+                <td className="p-3">
+                  <div className="flex flex-wrap gap-1">
+                    {form.formApprovalLine?.formApprovalSteps
+                      ?.filter((step) => step.type === "REFERENCE")
+                      .sort((a, b) => a.order - b.order)
+                      .slice(0, 2)
+                      .map((step) => (
+                        <span
+                          key={step.formApprovalStepId}
+                          className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded"
+                        >
+                          {step.defaultApprover.name}
+                        </span>
+                      ))}
+                    {form.formApprovalLine?.formApprovalSteps &&
+                      form.formApprovalLine?.formApprovalSteps?.filter(
+                        (step) => step.type === "REFERENCE"
+                      )?.length &&
+                      form.formApprovalLine?.formApprovalSteps?.filter(
+                        (step) => step.type === "REFERENCE"
+                      )?.length > 2 && (
+                        <span className="text-xs text-secondary">
+                          +
+                          {form.formApprovalLine?.formApprovalSteps?.filter(
+                            (step) => step.type === "REFERENCE"
+                          ).length - 2}
+                          명
+                        </span>
+                      )}
+                  </div>
                 </td>
                 <td className="p-3">
                   <div className="flex space-x-2">

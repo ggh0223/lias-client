@@ -36,6 +36,36 @@ export const ApprovalLineDetailDialog = ({
     }
   };
 
+  const getStepTypeLabel = (type: string) => {
+    switch (type) {
+      case "APPROVAL":
+        return "결재";
+      case "AGREEMENT":
+        return "합의";
+      case "IMPLEMENTATION":
+        return "시행";
+      case "REFERENCE":
+        return "수신/참조";
+      default:
+        return type;
+    }
+  };
+
+  const getStepTypeColor = (type: string) => {
+    switch (type) {
+      case "APPROVAL":
+        return "bg-primary/10 text-primary border-primary/20";
+      case "AGREEMENT":
+        return "bg-secondary/10 text-secondary border-secondary/20";
+      case "IMPLEMENTATION":
+        return "bg-warning/10 text-warning border-warning/20";
+      case "REFERENCE":
+        return "bg-info/10 text-info border-info/20";
+      default:
+        return "bg-gray/10 text-gray border-gray/20";
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-surface rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -156,7 +186,13 @@ export const ApprovalLineDetailDialog = ({
                       <label className="block text-sm font-medium text-secondary mb-1">
                         단계 타입
                       </label>
-                      <p className="text-sm text-primary">{step.type}</p>
+                      <span
+                        className={`px-2 py-1 text-xs font-medium rounded-full border ${getStepTypeColor(
+                          step.type
+                        )}`}
+                      >
+                        {getStepTypeLabel(step.type)}
+                      </span>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-secondary mb-1">

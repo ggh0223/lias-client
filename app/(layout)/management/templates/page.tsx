@@ -28,7 +28,7 @@ export default function TemplatesPage() {
     updateForm,
     deleteForm,
   } = useDocumentForms();
-
+  console.log("documentForms", documentForms);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingForm, setEditingForm] = useState<DocumentForm | null>(null);
   const [documentTypes, setDocumentTypes] = useState<DocumentFormType[]>([]);

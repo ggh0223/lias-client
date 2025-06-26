@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "../_lib/auth/auth-provider";
-import ClientLayout from "./client-layout";
+import ClientLayoutProvider from "./client-layout";
 
 interface AuthenticatedLayoutProps {
   children: React.ReactNode;
@@ -22,8 +22,8 @@ export default function AuthenticatedLayout({
     : undefined;
 
   return (
-    <ClientLayout user={userInfo} onLogout={logout}>
+    <ClientLayoutProvider user={userInfo} onLogout={logout}>
       {children}
-    </ClientLayout>
+    </ClientLayoutProvider>
   );
 }

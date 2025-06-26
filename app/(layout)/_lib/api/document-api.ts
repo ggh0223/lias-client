@@ -3,7 +3,11 @@
 import { ApiClient, ApiResponse } from "./api-client";
 
 // 결재선 관련 타입 정의
-export type ApprovalStepType = "AGREEMENT" | "APPROVAL";
+export type ApprovalStepType =
+  | "AGREEMENT"
+  | "APPROVAL"
+  | "IMPLEMENTATION"
+  | "REFERENCE";
 
 export interface FormApprovalStep {
   formApprovalStepId: string;
@@ -281,41 +285,32 @@ export const deleteDocumentFormType = async (id: string): Promise<void> => {
 };
 
 // 문서양식 관련 타입
-export interface EmployeeInfo {
-  employeeId: string;
-  name: string;
-  rank: string;
-}
-
 export interface DocumentForm {
   documentFormId: string;
   name: string;
   description: string;
   template: string;
-  receiverInfo: EmployeeInfo[];
-  implementerInfo: EmployeeInfo[];
   documentType: DocumentFormType;
   formApprovalLine?: FormApprovalLine;
+  autoFillType: "NONE" | "DRAFTER_ONLY" | "DRAFTER_SUPERIOR";
 }
 
 export interface CreateDocumentFormRequest {
   name: string;
   description?: string;
   template: string;
-  receiverInfo?: EmployeeInfo[];
-  implementerInfo?: EmployeeInfo[];
   documentTypeId: string;
   formApprovalLineId?: string;
+  autoFillType: "NONE" | "DRAFTER_ONLY" | "DRAFTER_SUPERIOR";
 }
 
 export interface UpdateDocumentFormRequest {
   name?: string;
   description?: string;
   template?: string;
-  receiverInfo?: EmployeeInfo[];
-  implementerInfo?: EmployeeInfo[];
   documentTypeId?: string;
   formApprovalLineId?: string;
+  autoFillType?: "NONE" | "DRAFTER_ONLY" | "DRAFTER_SUPERIOR";
   documentFormId: string;
 }
 
@@ -338,7 +333,7 @@ export const getDocumentForms = async (
     const response = await ApiClient.get<
       ApiResponse<PaginatedResponse<DocumentForm>>
     >("/api/document/forms", queryParams);
-
+    console.log("response", response);
     if (!response.success) {
       throw new Error(response.message || "문서양식 목록 조회에 실패했습니다.");
     }

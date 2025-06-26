@@ -112,40 +112,92 @@ export const ApprovalLineTable = ({
                 <td className="w-1/3 px-3 py-2">
                   <div className="space-y-2">
                     {/* 결재 단계 */}
-                    <div className="flex flex-wrap gap-1">
-                      <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded">
-                        결재
-                      </span>
-                      {approvalLine.formApprovalSteps
-                        .filter((step) => step.type === "APPROVAL")
-                        .sort((a, b) => a.order - b.order)
-                        .map((step) => (
-                          <span
-                            key={step.formApprovalStepId}
-                            className="text-xs bg-primary/5 text-primary px-2 py-1 rounded border border-primary/20"
-                          >
-                            {step.defaultApprover?.name || "미지정"}
-                          </span>
-                        ))}
-                    </div>
+                    {approvalLine.formApprovalSteps.filter(
+                      (step) => step.type === "APPROVAL"
+                    ).length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded">
+                          결재
+                        </span>
+                        {approvalLine.formApprovalSteps
+                          .filter((step) => step.type === "APPROVAL")
+                          .sort((a, b) => a.order - b.order)
+                          .map((step) => (
+                            <span
+                              key={step.formApprovalStepId}
+                              className="text-xs bg-primary/5 text-primary px-2 py-1 rounded border border-primary/20"
+                            >
+                              {step.defaultApprover?.name || "미지정"}
+                            </span>
+                          ))}
+                      </div>
+                    )}
 
                     {/* 합의 단계 */}
-                    <div className="flex flex-wrap gap-1">
-                      <span className="text-xs font-medium text-secondary bg-secondary/10 px-2 py-1 rounded">
-                        합의
-                      </span>
-                      {approvalLine.formApprovalSteps
-                        .filter((step) => step.type === "AGREEMENT")
-                        .sort((a, b) => a.order - b.order)
-                        .map((step) => (
-                          <span
-                            key={step.formApprovalStepId}
-                            className="text-xs bg-secondary/5 text-secondary px-2 py-1 rounded border border-secondary/20"
-                          >
-                            {step.defaultApprover?.name || "미지정"}
-                          </span>
-                        ))}
-                    </div>
+                    {approvalLine.formApprovalSteps.filter(
+                      (step) => step.type === "AGREEMENT"
+                    ).length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        <span className="text-xs font-medium text-secondary bg-secondary/10 px-2 py-1 rounded">
+                          합의
+                        </span>
+                        {approvalLine.formApprovalSteps
+                          .filter((step) => step.type === "AGREEMENT")
+                          .sort((a, b) => a.order - b.order)
+                          .map((step) => (
+                            <span
+                              key={step.formApprovalStepId}
+                              className="text-xs bg-secondary/5 text-secondary px-2 py-1 rounded border border-secondary/20"
+                            >
+                              {step.defaultApprover?.name || "미지정"}
+                            </span>
+                          ))}
+                      </div>
+                    )}
+
+                    {/* 시행 단계 */}
+                    {approvalLine.formApprovalSteps.filter(
+                      (step) => step.type === "IMPLEMENTATION"
+                    ).length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        <span className="text-xs font-medium text-warning bg-warning/10 px-2 py-1 rounded">
+                          시행
+                        </span>
+                        {approvalLine.formApprovalSteps
+                          .filter((step) => step.type === "IMPLEMENTATION")
+                          .sort((a, b) => a.order - b.order)
+                          .map((step) => (
+                            <span
+                              key={step.formApprovalStepId}
+                              className="text-xs bg-warning/5 text-warning px-2 py-1 rounded border border-warning/20"
+                            >
+                              {step.defaultApprover?.name || "미지정"}
+                            </span>
+                          ))}
+                      </div>
+                    )}
+
+                    {/* 수신자/참조자 단계 */}
+                    {approvalLine.formApprovalSteps.filter(
+                      (step) => step.type === "REFERENCE"
+                    ).length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        <span className="text-xs font-medium text-info bg-info/10 px-2 py-1 rounded">
+                          수신/참조
+                        </span>
+                        {approvalLine.formApprovalSteps
+                          .filter((step) => step.type === "REFERENCE")
+                          .sort((a, b) => a.order - b.order)
+                          .map((step) => (
+                            <span
+                              key={step.formApprovalStepId}
+                              className="text-xs bg-info/5 text-info px-2 py-1 rounded border border-info/20"
+                            >
+                              {step.defaultApprover?.name || "미지정"}
+                            </span>
+                          ))}
+                      </div>
+                    )}
                   </div>
                 </td>
                 <td className="w-1/12 px-3 py-2">

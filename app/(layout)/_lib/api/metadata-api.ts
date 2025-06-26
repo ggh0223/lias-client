@@ -8,7 +8,7 @@ export interface Department {
   departmentName: string;
   departmentCode: string;
   parentDepartmentId: string;
-  childrenDepartments: Department[];
+  childrenDepartments: DepartmentWithEmployees[];
 }
 
 // 직원 정보 타입 정의
@@ -31,10 +31,11 @@ export interface DepartmentWithEmployees {
 // 부서별 직원 목록 조회
 export const getMetadataApi = async (): Promise<DepartmentWithEmployees[]> => {
   try {
-    const response = await ApiClient.get<
-      ApiResponse<DepartmentWithEmployees[]>
-    >("/api/metadata");
-    return response.data;
+    const response = await ApiClient.get<ApiResponse<DepartmentWithEmployees>>(
+      "/api/metadata"
+    );
+    console.log(response.data);
+    return [response.data];
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(error.message);

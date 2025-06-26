@@ -1,0 +1,14 @@
+{
+  "folders": [
+	{
+		"path": "."
+	},
+	{
+		"path": "../lias"
+	},
+	{
+		"path": "../lumir-back-office-monorepo"
+	}
+],
+  "settings": {}
+}

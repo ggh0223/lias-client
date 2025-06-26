@@ -8,10 +8,7 @@ import {
   DocumentFormType,
   FormApprovalLine,
   getFormApprovalLinesApi,
-  EmployeeInfo,
 } from "@/app/(layout)/_lib/api/document-api";
-import { EmployeeSelectorModal } from "@/app/(layout)/_components/employee-selector-modal";
-import { Employee } from "@/app/(layout)/_lib/api/metadata-api";
 
 interface DocumentFormDialogProps {
   isOpen: boolean;
@@ -29,18 +26,16 @@ const PreviewModal = ({
   isOpen,
   onClose,
   template,
-  receiverInfo,
-  implementerInfo,
   documentType,
   approvalLine,
+  autoFillType,
 }: {
   isOpen: boolean;
   onClose: () => void;
   template: string;
-  receiverInfo: EmployeeInfo[];
-  implementerInfo: EmployeeInfo[];
   documentType?: DocumentFormType;
   approvalLine?: FormApprovalLine;
+  autoFillType: "NONE" | "DRAFTER_ONLY" | "DRAFTER_SUPERIOR";
 }) => {
   const [previewHtml, setPreviewHtml] = useState("");
 
@@ -48,22 +43,6 @@ const PreviewModal = ({
     if (isOpen && template) {
       // 템플릿의 플레이스홀더를 실제 데이터로 치환
       let html = template;
-
-      // 수신자 정보 치환
-      const receiverNames = receiverInfo.map((emp) => emp.name).join(", ");
-      html = html.replace(
-        /\{\{receiverInfo\}\}/g,
-        receiverNames || "수신자 미지정"
-      );
-
-      // 시행자 정보 치환
-      const implementerNames = implementerInfo
-        .map((emp) => emp.name)
-        .join(", ");
-      html = html.replace(
-        /\{\{implementerInfo\}\}/g,
-        implementerNames || "시행자 미지정"
-      );
 
       // 카테고리 정보 치환
       if (documentType) {
@@ -109,6 +88,28 @@ const PreviewModal = ({
           /\{\{agreementStepsOnly\}\}/g,
           agreementStepsOnly || "합의자 미지정"
         );
+
+        // 시행자 정보 치환
+        const implementationSteps = approvalLine.formApprovalSteps
+          .filter((step) => step.type === "IMPLEMENTATION")
+          .sort((a, b) => a.order - b.order)
+          .map((step) => step.defaultApprover.name)
+          .join(", ");
+        html = html.replace(
+          /\{\{implementationSteps\}\}/g,
+          implementationSteps || "시행자 미지정"
+        );
+
+        // 수신자/참조자 정보 치환
+        const referenceSteps = approvalLine.formApprovalSteps
+          .filter((step) => step.type === "REFERENCE")
+          .sort((a, b) => a.order - b.order)
+          .map((step) => step.defaultApprover.name)
+          .join(", ");
+        html = html.replace(
+          /\{\{referenceSteps\}\}/g,
+          referenceSteps || "수신자/참조자 미지정"
+        );
       }
 
       // 날짜 정보 치환
@@ -124,14 +125,7 @@ const PreviewModal = ({
 
       setPreviewHtml(html);
     }
-  }, [
-    isOpen,
-    template,
-    receiverInfo,
-    implementerInfo,
-    documentType,
-    approvalLine,
-  ]);
+  }, [isOpen, template, documentType, approvalLine, autoFillType]);
 
   if (!isOpen) return null;
 
@@ -156,22 +150,6 @@ const PreviewModal = ({
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
-              <span className="text-secondary">수신자:</span>
-              <span className="ml-2 text-primary">
-                {receiverInfo.length > 0
-                  ? receiverInfo.map((emp) => emp.name).join(", ")
-                  : "미지정"}
-              </span>
-            </div>
-            <div>
-              <span className="text-secondary">시행자:</span>
-              <span className="ml-2 text-primary">
-                {implementerInfo.length > 0
-                  ? implementerInfo.map((emp) => emp.name).join(", ")
-                  : "미지정"}
-              </span>
-            </div>
-            <div>
               <span className="text-secondary">카테고리:</span>
               <span className="ml-2 text-primary">
                 {documentType?.name || "미지정"}
@@ -190,6 +168,14 @@ const PreviewModal = ({
               </span>
             </div>
             <div>
+              <span className="text-secondary">자동 채우기:</span>
+              <span className="ml-2 text-primary">
+                {autoFillType === "NONE" && "자동 채우기 없음"}
+                {autoFillType === "DRAFTER_ONLY" && "기안자만"}
+                {autoFillType === "DRAFTER_SUPERIOR" && "기안자 + 상급자"}
+              </span>
+            </div>
+            <div>
               <span className="text-secondary">결재 단계:</span>
               <span className="ml-2 text-primary">
                 {approvalLine?.formApprovalSteps
@@ -198,55 +184,20 @@ const PreviewModal = ({
                   .join(" → ") || "미지정"}
               </span>
             </div>
-            <div>
-              <span className="text-secondary">결재자:</span>
-              <span className="ml-2 text-primary">
-                {approvalLine?.formApprovalSteps
-                  .filter((step) => step.type === "APPROVAL")
-                  .sort((a, b) => a.order - b.order)
-                  .map((step) => step.defaultApprover.name)
-                  .join(" → ") || "미지정"}
-              </span>
-            </div>
-            <div>
-              <span className="text-secondary">합의자:</span>
-              <span className="ml-2 text-primary">
-                {approvalLine?.formApprovalSteps
-                  .filter((step) => step.type === "AGREEMENT")
-                  .sort((a, b) => a.order - b.order)
-                  .map((step) => step.defaultApprover.name)
-                  .join(" → ") || "미지정"}
-              </span>
-            </div>
-            <div>
-              <span className="text-secondary">생성일:</span>
-              <span className="ml-2 text-primary">
-                {new Date().toLocaleDateString("ko-KR")}
-              </span>
-            </div>
-            <div>
-              <span className="text-secondary">문서번호:</span>
-              <span className="ml-2 text-primary">
-                {documentType?.documentNumberCode || "DOC"}-
-                {Date.now().toString().slice(-6)}
-              </span>
-            </div>
           </div>
         </div>
 
-        <div className="border border-border rounded-lg overflow-hidden">
-          <div className="bg-white p-8 min-h-[500px]">
-            <div
-              className="prose max-w-none"
-              dangerouslySetInnerHTML={{ __html: previewHtml }}
-            />
-          </div>
+        <div className="border border-border rounded-lg p-4 bg-white">
+          <div
+            className="prose max-w-none"
+            dangerouslySetInnerHTML={{ __html: previewHtml }}
+          />
         </div>
 
-        <div className="flex justify-end mt-6">
+        <div className="flex justify-end mt-4">
           <button
             onClick={onClose}
-            className="px-4 py-2 border border-border rounded-lg text-secondary hover:bg-surface"
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
           >
             닫기
           </button>
@@ -267,15 +218,14 @@ export const DocumentFormDialog = ({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [template, setTemplate] = useState("");
-  const [receiverInfo, setReceiverInfo] = useState<EmployeeInfo[]>([]);
-  const [implementerInfo, setImplementerInfo] = useState<EmployeeInfo[]>([]);
   const [documentTypeId, setDocumentTypeId] = useState("");
   const [formApprovalLineId, setFormApprovalLineId] = useState("");
+  const [autoFillType, setAutoFillType] = useState<
+    "NONE" | "DRAFTER_ONLY" | "DRAFTER_SUPERIOR"
+  >("NONE");
   const [error, setError] = useState<string | null>(null);
 
   // 모달 상태
-  const [isReceiverModalOpen, setIsReceiverModalOpen] = useState(false);
-  const [isImplementerModalOpen, setIsImplementerModalOpen] = useState(false);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
   // 결재선 목록
@@ -294,7 +244,10 @@ export const DocumentFormDialog = ({
     const loadApprovalLines = async () => {
       try {
         setLoadingApprovalLines(true);
-        const response = await getFormApprovalLinesApi({ limit: 100 }); // 충분한 수의 결재선 가져오기
+        const response = await getFormApprovalLinesApi({
+          limit: 100,
+          type: "COMMON",
+        }); // 충분한 수의 결재선 가져오기
         setApprovalLines(response.items);
       } catch (error) {
         console.error("결재선 목록 로드 실패:", error);
@@ -316,18 +269,16 @@ export const DocumentFormDialog = ({
         setName(form.name);
         setDescription(form.description || "");
         setTemplate(form.template);
-        setReceiverInfo(form.receiverInfo || []);
-        setImplementerInfo(form.implementerInfo || []);
         setDocumentTypeId(form.documentType.documentTypeId);
         setFormApprovalLineId(form.formApprovalLine?.formApprovalLineId || "");
+        setAutoFillType(form.autoFillType);
       } else {
         setName("");
         setDescription("");
         setTemplate("");
-        setReceiverInfo([]);
-        setImplementerInfo([]);
         setDocumentTypeId("");
         setFormApprovalLineId("");
+        setAutoFillType("NONE");
       }
       setError(null);
     }
@@ -352,17 +303,20 @@ export const DocumentFormDialog = ({
       return;
     }
 
+    if (!formApprovalLineId) {
+      setError("결재선을 선택해주세요.");
+      return;
+    }
+
     try {
       if (isEditMode && form) {
         await onSubmit({
           name: name.trim(),
           description: description.trim() || undefined,
           template: template.trim(),
-          receiverInfo: receiverInfo.length > 0 ? receiverInfo : undefined,
-          implementerInfo:
-            implementerInfo.length > 0 ? implementerInfo : undefined,
           documentTypeId,
-          formApprovalLineId: formApprovalLineId || undefined,
+          formApprovalLineId,
+          autoFillType,
           documentFormId: form.documentFormId,
         } as UpdateDocumentFormRequest);
       } else {
@@ -370,11 +324,9 @@ export const DocumentFormDialog = ({
           name: name.trim(),
           description: description.trim() || undefined,
           template: template.trim(),
-          receiverInfo: receiverInfo.length > 0 ? receiverInfo : undefined,
-          implementerInfo:
-            implementerInfo.length > 0 ? implementerInfo : undefined,
           documentTypeId,
-          formApprovalLineId: formApprovalLineId || undefined,
+          formApprovalLineId,
+          autoFillType,
         } as CreateDocumentFormRequest);
       }
       onClose();
@@ -396,49 +348,6 @@ export const DocumentFormDialog = ({
     }
     setIsPreviewModalOpen(true);
   };
-
-  const handleReceiverSelect = (selectedEmployees: Employee[]) => {
-    const employeeInfos: EmployeeInfo[] = selectedEmployees.map((emp) => ({
-      employeeId: emp.employeeId,
-      name: emp.name,
-      rank: emp.rank,
-    }));
-    setReceiverInfo(employeeInfos);
-    setIsReceiverModalOpen(false);
-  };
-
-  const handleImplementerSelect = (selectedEmployees: Employee[]) => {
-    const employeeInfos: EmployeeInfo[] = selectedEmployees.map((emp) => ({
-      employeeId: emp.employeeId,
-      name: emp.name,
-      rank: emp.rank,
-    }));
-    setImplementerInfo(employeeInfos);
-    setIsImplementerModalOpen(false);
-  };
-
-  const removeReceiver = (employeeId: string) => {
-    setReceiverInfo(
-      receiverInfo.filter((emp) => emp.employeeId !== employeeId)
-    );
-  };
-
-  const removeImplementer = (employeeId: string) => {
-    setImplementerInfo(
-      implementerInfo.filter((emp) => emp.employeeId !== employeeId)
-    );
-  };
-
-  // EmployeeInfo를 Employee로 변환하는 함수 (모달에서 사용)
-  const convertToEmployee = (employeeInfo: EmployeeInfo): Employee => ({
-    employeeId: employeeInfo.employeeId,
-    name: employeeInfo.name,
-    employeeNumber: "", // API에서 제공하지 않는 경우 빈 문자열
-    email: "", // API에서 제공하지 않는 경우 빈 문자열
-    department: "",
-    position: "",
-    rank: employeeInfo.rank,
-  });
 
   if (!isOpen) return null;
 
@@ -551,8 +460,6 @@ export const DocumentFormDialog = ({
                 placeholder={`HTML 템플릿을 입력하세요
 
 사용 가능한 플레이스홀더:
-{{receiverInfo}} - 수신자 정보
-{{implementerInfo}} - 시행자 정보
 {{documentType}} - 문서 타입
 {{documentNumberCode}} - 문서 번호 코드
 {{approvalLineName}} - 결재선 이름
@@ -560,93 +467,11 @@ export const DocumentFormDialog = ({
 {{approvalSteps}} - 결재 단계 정보 (결재+합의)
 {{approvalStepsOnly}} - 결재자만
 {{agreementStepsOnly}} - 합의자만
+{{implementationSteps}} - 시행자만
+{{referenceSteps}} - 수신자/참조자만
 {{currentDate}} - 현재 날짜
 {{documentNumber}} - 문서 번호`}
               />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-primary mb-2">
-                  수신 및 참조자 정보
-                </label>
-                <div className="space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsReceiverModalOpen(true)}
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-primary hover:bg-surface/80 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
-                  >
-                    + 수신자/참조자 선택
-                  </button>
-                  {receiverInfo.length > 0 && (
-                    <div className="border border-border rounded-lg p-3 max-h-32 overflow-y-auto">
-                      <div className="flex flex-wrap gap-1">
-                        {receiverInfo.map((employee) => (
-                          <div
-                            key={employee.employeeId}
-                            className="flex items-center space-x-1 bg-primary/10 border border-primary/20 rounded px-2 py-1"
-                          >
-                            <span className="text-xs text-primary">
-                              {employee.name} ({employee.rank})
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                removeReceiver(employee.employeeId)
-                              }
-                              className="text-primary hover:text-primary/80"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-primary mb-2">
-                  시행자 정보
-                </label>
-                <div className="space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsImplementerModalOpen(true)}
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-primary hover:bg-surface/80 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
-                  >
-                    + 시행자 선택
-                  </button>
-                  {implementerInfo.length > 0 && (
-                    <div className="border border-border rounded-lg p-3 max-h-32 overflow-y-auto">
-                      <div className="flex flex-wrap gap-1">
-                        {implementerInfo.map((employee) => (
-                          <div
-                            key={employee.employeeId}
-                            className="flex items-center space-x-1 bg-secondary/10 border border-secondary/20 rounded px-2 py-1"
-                          >
-                            <span className="text-xs text-secondary">
-                              {employee.name} ({employee.rank})
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                removeImplementer(employee.employeeId)
-                              }
-                              className="text-secondary hover:text-secondary/80"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
 
             <div>
@@ -654,7 +479,7 @@ export const DocumentFormDialog = ({
                 htmlFor="formApprovalLineId"
                 className="block text-sm font-medium text-primary mb-2"
               >
-                결재선
+                결재선 *
               </label>
               <select
                 id="formApprovalLineId"
@@ -677,6 +502,36 @@ export const DocumentFormDialog = ({
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label
+                htmlFor="autoFillType"
+                className="block text-sm font-medium text-primary mb-2"
+              >
+                자동 채우기 타입
+              </label>
+              <select
+                id="autoFillType"
+                value={autoFillType}
+                onChange={(e) =>
+                  setAutoFillType(
+                    e.target.value as
+                      | "NONE"
+                      | "DRAFTER_ONLY"
+                      | "DRAFTER_SUPERIOR"
+                  )
+                }
+                disabled={isLoading}
+                className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
+              >
+                <option value="NONE">자동 채우기 없음</option>
+                <option value="DRAFTER_ONLY">기안자만</option>
+                <option value="DRAFTER_SUPERIOR">기안자 + 상급자</option>
+              </select>
+              <p className="text-xs text-secondary mt-1">
+                문서 작성 시 결재선에 자동으로 추가할 결재자 유형을 선택하세요.
+              </p>
             </div>
 
             {error && (
@@ -706,37 +561,16 @@ export const DocumentFormDialog = ({
         </div>
       </div>
 
-      {/* 수신자/참조자 선택 모달 */}
-      <EmployeeSelectorModal
-        isOpen={isReceiverModalOpen}
-        onClose={() => setIsReceiverModalOpen(false)}
-        onSelect={handleReceiverSelect}
-        selectedEmployees={receiverInfo.map(convertToEmployee)}
-        title="수신자/참조자 선택"
-        multiple={true}
-      />
-
-      {/* 시행자 선택 모달 */}
-      <EmployeeSelectorModal
-        isOpen={isImplementerModalOpen}
-        onClose={() => setIsImplementerModalOpen(false)}
-        onSelect={handleImplementerSelect}
-        selectedEmployees={implementerInfo.map(convertToEmployee)}
-        title="시행자 선택"
-        multiple={true}
-      />
-
       {/* 미리보기 모달 */}
       <PreviewModal
         isOpen={isPreviewModalOpen}
         onClose={() => setIsPreviewModalOpen(false)}
         template={template}
-        receiverInfo={receiverInfo}
-        implementerInfo={implementerInfo}
         documentType={selectedDocumentType}
         approvalLine={approvalLines.find(
           (line) => line.formApprovalLineId === formApprovalLineId
         )}
+        autoFillType={autoFillType}
       />
     </>
   );
