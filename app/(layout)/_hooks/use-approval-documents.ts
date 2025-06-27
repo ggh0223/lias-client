@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   approvalApi,
-  PaginationQueryDto,
   CreateDraftDocumentDto,
   UpdateDraftDocumentDto,
   ApprovalResponseDto,
+  ApprovalDocumentsQueryDto,
+  PaginationData,
 } from "../_lib/api/approval-api";
 
 // 타입들을 export
@@ -14,67 +15,79 @@ export type {
   ApprovalResponseDto,
 };
 
-// 문서 목록 조회 훅
-export const useApprovalDocuments = (params?: PaginationQueryDto) => {
-  const [documents, setDocuments] = useState<ApprovalResponseDto[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+export type DocumentListType =
+  | "drafted" // 내가 상신한 문서
+  | "pending_approval" // 결재 진행중 문서 (현재 차례)
+  | "pending_agreement" // 협의 진행중 문서 (현재 차례)
+  | "approved" // 결재 완료된 문서
+  | "rejected" // 결재 반려된 문서
+  | "received_reference" // 내가 수신한 문서 (참조)
+  | "implementation"; // 내가 시행해야하는 문서 (현재 차례)
+
+// 기존 API 타입들을 재사용
+export type Employee = ApprovalResponseDto["drafter"];
+export type ApprovalStep = ApprovalResponseDto["approvalSteps"][0];
+export type Document = ApprovalResponseDto;
+export type PaginationMeta = PaginationData<ApprovalResponseDto>["meta"];
+export type ApprovalDocumentsResponse = PaginationData<ApprovalResponseDto>;
+
+export interface UseApprovalDocumentsOptions {
+  listType: DocumentListType;
+  page?: number;
+  limit?: number;
+  enabled?: boolean;
+}
+
+export function useApprovalDocuments({
+  listType,
+  page = 1,
+  limit = 20,
+  enabled = true,
+}: UseApprovalDocumentsOptions) {
+  const [data, setData] = useState<ApprovalDocumentsResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // params를 문자열로 직렬화하여 안정적인 의존성 생성
-  const paramsKey = useMemo(() => {
-    if (!params) return "";
-    return JSON.stringify(params);
-  }, [params]);
+  const fetchDocuments = async () => {
+    if (!enabled) return;
 
-  const fetchDocuments = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
     try {
-      setLoading(true);
-      setError(null);
-      const response = await approvalApi.getDraftList(params);
-      console.log("response", response);
-      setDocuments(response.items || []);
+      const params: ApprovalDocumentsQueryDto = {
+        listType,
+        page,
+        limit,
+      };
 
-      // meta가 있는 경우에만 설정, 없으면 기본값 사용
-      if (response.meta) {
-        setTotal(response.meta.total || 0);
-        setPage(response.meta.page || 1);
-        setLimit(response.meta.limit || 10);
-      } else {
-        // meta가 없는 경우 기본값 설정
-        setTotal(response.items?.length || 0);
-        setPage(1);
-        setLimit(10);
-      }
+      const result = await approvalApi.getApprovalDocuments(params);
+      setData(result);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "문서 목록 조회에 실패했습니다."
+        err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다."
       );
-      setDocuments([]);
-      setTotal(0);
-      setPage(1);
-      setLimit(10);
+      console.error("문서 조회 오류:", err);
     } finally {
       setLoading(false);
     }
-  }, [paramsKey]);
+  };
 
   useEffect(() => {
     fetchDocuments();
-  }, [fetchDocuments]);
+  }, [listType, page, limit, enabled]);
+
+  const refetch = () => {
+    fetchDocuments();
+  };
 
   return {
-    documents,
-    total,
-    page,
-    limit,
+    data,
     loading,
     error,
-    mutate: fetchDocuments,
+    refetch,
   };
-};
+}
 
 // 단일 문서 조회 훅
 export const useApprovalDocument = (id: string) => {

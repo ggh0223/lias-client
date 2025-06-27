@@ -38,6 +38,8 @@ export interface ApprovalStepResponseDto {
   type: string;
   order: number;
   approvedDate: string;
+  isApproved: boolean;
+  isCurrent: boolean;
   createdAt: string;
   updatedAt: string;
   approver: EmployeeResponseDto;
@@ -59,6 +61,7 @@ export interface ApprovalResponseDto {
   updatedAt: string;
   drafter: EmployeeResponseDto;
   approvalSteps: ApprovalStepResponseDto[];
+  currentStep?: ApprovalStepResponseDto;
   parentDocument: ApprovalResponseDto | null;
   files: FileDto[];
 }
@@ -71,6 +74,19 @@ export interface PaginationQueryDto {
   page?: number;
   limit?: number;
   status?: string[];
+}
+
+export interface ApprovalDocumentsQueryDto {
+  page?: number;
+  limit?: number;
+  listType:
+    | "drafted"
+    | "pending_approval"
+    | "pending_agreement"
+    | "approved"
+    | "rejected"
+    | "received_reference"
+    | "implementation";
 }
 
 export interface PaginationData<T> {
@@ -106,6 +122,22 @@ export const approvalApi = {
     return response.data;
   },
 
+  // 결재 문서 조회 (documentListType별)
+  getApprovalDocuments: async (
+    params: ApprovalDocumentsQueryDto
+  ): Promise<PaginationData<ApprovalResponseDto>> => {
+    const queryParams: Record<string, string | number | boolean> = {
+      listType: params.listType,
+    };
+    if (params.page) queryParams.page = params.page;
+    if (params.limit) queryParams.limit = params.limit;
+
+    const response = await ApiClient.get<
+      ApiResponse<PaginationData<ApprovalResponseDto>>
+    >("/api/approval/documents", queryParams);
+    return response.data;
+  },
+
   // 기안 문서 조회
   getDraft: async (id: string): Promise<ApprovalResponseDto> => {
     const response = await ApiClient.get<ApiResponse<ApprovalResponseDto>>(
@@ -130,6 +162,38 @@ export const approvalApi = {
   deleteDraft: async (id: string): Promise<void> => {
     const response = await ApiClient.delete<ApiResponse<void>>(
       `/api/approval/documents/${id}`
+    );
+    return response.data;
+  },
+
+  // 결재 승인
+  approveDocument: async (documentId: string): Promise<void> => {
+    const response = await ApiClient.post<ApiResponse<void>>(
+      `/api/approval/${documentId}/approve`
+    );
+    return response.data;
+  },
+
+  // 결재 반려
+  rejectDocument: async (documentId: string): Promise<void> => {
+    const response = await ApiClient.post<ApiResponse<void>>(
+      `/api/approval/${documentId}/reject`
+    );
+    return response.data;
+  },
+
+  // 시행
+  implementDocument: async (documentId: string): Promise<void> => {
+    const response = await ApiClient.post<ApiResponse<void>>(
+      `/api/approval/${documentId}/implementation`
+    );
+    return response.data;
+  },
+
+  // 열람
+  referenceDocument: async (documentId: string): Promise<void> => {
+    const response = await ApiClient.post<ApiResponse<void>>(
+      `/api/approval/${documentId}/reference`
     );
     return response.data;
   },
