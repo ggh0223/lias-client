@@ -196,3 +196,78 @@ export const useDeleteApprovalDocument = () => {
 
   return { deleteDocument, loading, error };
 };
+
+// 전체 문서 조회 훅 (여러 상태의 문서를 동시에 가져옴)
+export const useAllApprovalDocuments = (page = 1, limit = 20) => {
+  const [data, setData] = useState<{
+    [key in DocumentListType]?: ApprovalDocumentsResponse;
+  }>({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchAllDocuments = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const listTypes: DocumentListType[] = [
+        "drafted",
+        "pending_approval",
+        "pending_agreement",
+        "approved",
+        "rejected",
+        "received_reference",
+        "implementation",
+      ];
+
+      const promises = listTypes.map(async (listType) => {
+        try {
+          const params: ApprovalDocumentsQueryDto = {
+            listType,
+            page,
+            limit,
+          };
+          const result = await approvalApi.getApprovalDocuments(params);
+          return { listType, result };
+        } catch (err) {
+          console.error(`${listType} 문서 조회 오류:`, err);
+          return { listType, result: null };
+        }
+      });
+
+      const results = await Promise.all(promises);
+      const newData: { [key in DocumentListType]?: ApprovalDocumentsResponse } =
+        {};
+
+      results.forEach(({ listType, result }) => {
+        if (result) {
+          newData[listType] = result;
+        }
+      });
+
+      setData(newData);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "문서 조회 중 오류가 발생했습니다."
+      );
+      console.error("전체 문서 조회 오류:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAllDocuments();
+  }, [page, limit]);
+
+  const refetch = () => {
+    fetchAllDocuments();
+  };
+
+  return {
+    data,
+    loading,
+    error,
+    refetch,
+  };
+};
