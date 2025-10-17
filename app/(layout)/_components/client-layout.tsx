@@ -2,11 +2,7 @@
 
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  LayoutContainer,
-  Sidebar,
-  DesignSettingsProvider,
-} from "@lumir-company/design-system-v0/dist";
+import Link from "next/link";
 
 // 메뉴 그룹 정의
 const menuGroups = [
@@ -33,7 +29,6 @@ const menuGroups = [
         ),
         listType: "drafted",
       },
-
       {
         title: "협의함",
         path: "/approval/agreement",
@@ -134,7 +129,6 @@ const menuGroups = [
         ),
         listType: "implementation",
       },
-
       {
         title: "수신참조함",
         path: "/approval/received",
@@ -254,54 +248,140 @@ interface ClientLayoutProps {
 export function ClientLayout({ children, user, onLogout }: ClientLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isAdminMode, setIsAdminMode] = useState(true);
-
-  // 로그인 페이지인 경우 사이드바를 표시하지 않음
 
   const handleLogout = () => {
     if (onLogout) {
       onLogout();
     }
-    // 로그아웃 후 로그인 페이지로 이동
     router.push("/login");
   };
 
-  const handleModeToggle = () => {
-    setIsAdminMode(!isAdminMode);
-    console.log("모드 전환:", !isAdminMode ? "관리자" : "사용자");
-  };
-
-  // const { setRadius } = useDesignSettings();
-  // setRadius(0);
-
   return (
-    <div className="flex w-full h-screen bg-background text-foreground">
-      <Sidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-        activePath={pathname}
-        menuGroups={menuGroups}
-        user={user}
-        onLogout={handleLogout}
-        isAdminMode={isAdminMode}
-        onModeToggle={handleModeToggle}
-        showModeToggle={true}
-        showNotification={true}
-        showSettings={true}
-      />
+    <div className="flex h-screen bg-gray-50">
+      {/* Sidebar */}
+      <aside
+        className={`${
+          isSidebarCollapsed ? "w-16" : "w-64"
+        } bg-white border-r border-gray-200 transition-all duration-300 flex flex-col`}
+      >
+        {/* Header */}
+        <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200">
+          {!isSidebarCollapsed && (
+            <h1 className="text-xl font-bold text-gray-900">LIAS</h1>
+          )}
+          <button
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <svg
+              className="w-5 h-5 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d={
+                  isSidebarCollapsed
+                    ? "M13 5l7 7-7 7M5 5l7 7-7 7"
+                    : "M11 19l-7-7 7-7m8 14l-7-7 7-7"
+                }
+              />
+            </svg>
+          </button>
+        </div>
 
-      <main className="flex-1 w-full ">
-        <LayoutContainer
-          type="full"
-          hasSidebar={true}
-          sidebarCollapsed={isSidebarCollapsed}
-        >
-          {children}
-        </LayoutContainer>
+        {/* Menu */}
+        <nav className="flex-1 overflow-y-auto py-4">
+          {menuGroups.map((group, groupIndex) => (
+            <div key={groupIndex} className="mb-6">
+              {!isSidebarCollapsed && (
+                <h3 className="px-4 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  {group.title}
+                </h3>
+              )}
+              <ul className="space-y-1">
+                {group.items.map((item, itemIndex) => {
+                  const isActive = pathname === item.path;
+                  return (
+                    <li key={itemIndex}>
+                      <Link
+                        href={item.path}
+                        className={`flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
+                          isActive
+                            ? "bg-blue-50 text-blue-600 border-r-2 border-blue-600"
+                            : "text-gray-700 hover:bg-gray-100"
+                        }`}
+                      >
+                        <span className="flex-shrink-0">{item.icon}</span>
+                        {!isSidebarCollapsed && (
+                          <span className="truncate">{item.title}</span>
+                        )}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </nav>
+
+        {/* User Info */}
+        {user && (
+          <div className="border-t border-gray-200 p-4">
+            {!isSidebarCollapsed ? (
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold">
+                    {user.initials}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {user.name}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {user.email}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="w-full px-4 py-2 text-sm text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                >
+                  로그아웃
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleLogout}
+                className="w-full p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                title="로그아웃"
+              >
+                <svg
+                  className="w-5 h-5 mx-auto"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
+        )}
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-auto">
+        <div className="h-full">{children}</div>
       </main>
     </div>
   );
@@ -321,10 +401,8 @@ export default function ClientLayoutProvider({
   onLogout?: () => void;
 }) {
   return (
-    <DesignSettingsProvider>
-      <ClientLayout user={user} onLogout={onLogout}>
-        {children}
-      </ClientLayout>
-    </DesignSettingsProvider>
+    <ClientLayout user={user} onLogout={onLogout}>
+      {children}
+    </ClientLayout>
   );
 }
