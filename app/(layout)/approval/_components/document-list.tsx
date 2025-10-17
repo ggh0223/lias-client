@@ -39,7 +39,7 @@ export function DocumentList({ listType, title }: DocumentListProps) {
     page,
     limit: 10,
   });
-
+  console.log("data", data);
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
   };
@@ -83,15 +83,17 @@ export function DocumentList({ listType, title }: DocumentListProps) {
           await approvalApi.referenceDocument(dialogState.documentId);
           break;
       }
-
+      console.log("success");
       // 성공 후 목록 새로고침
       await refetch();
+      console.log("refetch success");
       setDialogState({
         isOpen: false,
         type: "",
         documentId: "",
         documentTitle: "",
       });
+      console.log("dialogState reset");
     } catch (error) {
       console.error("액션 처리 오류:", error);
       alert("처리 중 오류가 발생했습니다.");

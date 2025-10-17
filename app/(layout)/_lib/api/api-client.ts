@@ -2,12 +2,6 @@
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
-export interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-}
-
 export interface RequestConfig {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   headers?: Record<string, string>;
@@ -34,6 +28,7 @@ export class ApiClient {
     if (!token) {
       throw new ApiError("인증 토큰이 없습니다.");
     }
+
     return {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
@@ -58,17 +53,41 @@ export class ApiClient {
   }
 
   private static async handleResponse<T>(response: Response): Promise<T> {
-    const data = await response.json();
-
+    // 응답이 성공적이지 않은 경우
     if (!response.ok) {
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = {};
+      }
+
       throw new ApiError(
-        data.message || `HTTP ${response.status}: ${response.statusText}`,
+        errorData.message || `HTTP ${response.status}: ${response.statusText}`,
         response.status,
-        data
+        errorData
       );
     }
 
-    return data;
+    // 응답 body가 없는 경우 (204 No Content, void 등)
+    const contentType = response.headers.get("content-type");
+    const contentLength = response.headers.get("content-length");
+
+    if (
+      response.status === 204 ||
+      contentLength === "0" ||
+      !contentType?.includes("application/json")
+    ) {
+      return undefined as T;
+    }
+
+    // JSON 응답 파싱
+    try {
+      return await response.json();
+    } catch {
+      // JSON 파싱 실패 시 빈 응답으로 처리
+      return undefined as T;
+    }
   }
 
   static async request<T>(

@@ -6,7 +6,6 @@ import {
   LayoutContainer,
   Sidebar,
   DesignSettingsProvider,
-  useDesignSettings,
 } from "@lumir-company/design-system-v0/dist";
 
 // 메뉴 그룹 정의
@@ -274,8 +273,8 @@ export function ClientLayout({ children, user, onLogout }: ClientLayoutProps) {
     console.log("모드 전환:", !isAdminMode ? "관리자" : "사용자");
   };
 
-  const { setRadius } = useDesignSettings();
-  setRadius(0);
+  // const { setRadius } = useDesignSettings();
+  // setRadius(0);
 
   return (
     <div className="flex w-full h-screen bg-background text-foreground">
@@ -310,12 +309,22 @@ export function ClientLayout({ children, user, onLogout }: ClientLayoutProps) {
 
 export default function ClientLayoutProvider({
   children,
+  user,
+  onLogout,
 }: {
   children: React.ReactNode;
+  user?: {
+    name: string;
+    email: string;
+    initials: string;
+  };
+  onLogout?: () => void;
 }) {
   return (
     <DesignSettingsProvider>
-      <ClientLayout>{children}</ClientLayout>
+      <ClientLayout user={user} onLogout={onLogout}>
+        {children}
+      </ClientLayout>
     </DesignSettingsProvider>
   );
 }

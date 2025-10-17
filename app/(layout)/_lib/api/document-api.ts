@@ -1,6 +1,6 @@
 // 문서 관련 API 호출 함수
 
-import { ApiClient, ApiResponse } from "./api-client";
+import { ApiClient } from "./api-client";
 
 // 결재선 관련 타입 정의
 export type ApprovalStepType =
@@ -91,10 +91,10 @@ export const getFormApprovalLinesApi = async (
     if (type) queryParams.type = type;
     if (search) queryParams.search = search;
 
-    const response = await ApiClient.get<
-      ApiResponse<PaginatedResponse<FormApprovalLine>>
-    >("/api/document/approval-lines", queryParams);
-    return response.data;
+    return ApiClient.get<PaginatedResponse<FormApprovalLine>>(
+      "/api/document/approval-lines",
+      queryParams
+    );
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(error.message);
@@ -108,10 +108,9 @@ export const getFormApprovalLineApi = async (
   id: string
 ): Promise<FormApprovalLine> => {
   try {
-    const response = await ApiClient.get<ApiResponse<FormApprovalLine>>(
+    return ApiClient.get<FormApprovalLine>(
       `/api/document/approval-lines/${id}`
     );
-    return response.data;
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(error.message);
@@ -125,11 +124,10 @@ export const createFormApprovalLineApi = async (
   requestData: CreateFormApprovalLineRequest
 ): Promise<FormApprovalLine> => {
   try {
-    const response = await ApiClient.post<ApiResponse<FormApprovalLine>>(
+    return ApiClient.post<FormApprovalLine>(
       "/api/document/approval-lines",
       requestData
     );
-    return response.data;
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(error.message);
@@ -144,11 +142,10 @@ export const updateFormApprovalLineApi = async (
   requestData: UpdateFormApprovalLineRequest
 ): Promise<FormApprovalLine> => {
   try {
-    const response = await ApiClient.patch<ApiResponse<FormApprovalLine>>(
+    return ApiClient.patch<FormApprovalLine>(
       `/api/document/approval-lines/${id}`,
       requestData
     );
-    return response.data;
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(error.message);
@@ -190,17 +187,7 @@ export interface UpdateDocumentFormTypeRequest {
 // 문서양식 분류 API 함수들
 export const getDocumentFormTypes = async (): Promise<DocumentFormType[]> => {
   try {
-    const response = await ApiClient.get<ApiResponse<DocumentFormType[]>>(
-      "/api/document/form-types"
-    );
-
-    if (!response.success) {
-      throw new Error(
-        response.message || "문서양식 분류 목록 조회에 실패했습니다."
-      );
-    }
-
-    return response.data;
+    return ApiClient.get<DocumentFormType[]>("/api/document/form-types");
   } catch (error) {
     console.error("문서양식 분류 목록 조회 에러:", error);
     throw error;
@@ -211,17 +198,7 @@ export const getDocumentFormType = async (
   id: string
 ): Promise<DocumentFormType> => {
   try {
-    const response = await ApiClient.get<ApiResponse<DocumentFormType>>(
-      `/api/document/form-types/${id}`
-    );
-
-    if (!response.success) {
-      throw new Error(
-        response.message || "문서양식 분류 상세 조회에 실패했습니다."
-      );
-    }
-
-    return response.data;
+    return ApiClient.get<DocumentFormType>(`/api/document/form-types/${id}`);
   } catch (error) {
     console.error("문서양식 분류 상세 조회 에러:", error);
     throw error;
@@ -232,16 +209,7 @@ export const createDocumentFormType = async (
   data: CreateDocumentFormTypeRequest
 ): Promise<DocumentFormType> => {
   try {
-    const response = await ApiClient.post<ApiResponse<DocumentFormType>>(
-      "/api/document/form-types",
-      data
-    );
-
-    if (!response.success) {
-      throw new Error(response.message || "문서양식 분류 생성에 실패했습니다.");
-    }
-
-    return response.data;
+    return ApiClient.post<DocumentFormType>("/api/document/form-types", data);
   } catch (error) {
     console.error("문서양식 분류 생성 에러:", error);
     throw error;
@@ -253,16 +221,10 @@ export const updateDocumentFormType = async (
   data: UpdateDocumentFormTypeRequest
 ): Promise<DocumentFormType> => {
   try {
-    const response = await ApiClient.patch<ApiResponse<DocumentFormType>>(
+    return ApiClient.patch<DocumentFormType>(
       `/api/document/form-types/${id}`,
       data
     );
-
-    if (!response.success) {
-      throw new Error(response.message || "문서양식 분류 수정에 실패했습니다.");
-    }
-
-    return response.data;
   } catch (error) {
     console.error("문서양식 분류 수정 에러:", error);
     throw error;
@@ -271,13 +233,7 @@ export const updateDocumentFormType = async (
 
 export const deleteDocumentFormType = async (id: string): Promise<void> => {
   try {
-    const response = await ApiClient.delete<null>(
-      `/api/document/form-types/${id}`
-    );
-
-    if (response !== null) {
-      throw new Error("문서양식 분류 삭제에 실패했습니다.");
-    }
+    await ApiClient.delete<void>(`/api/document/form-types/${id}`);
   } catch (error) {
     console.error("문서양식 분류 삭제 에러:", error);
     throw error;
@@ -330,15 +286,10 @@ export const getDocumentForms = async (
     if (params.limit) queryParams.limit = params.limit;
     if (params.search) queryParams.search = params.search;
 
-    const response = await ApiClient.get<
-      ApiResponse<PaginatedResponse<DocumentForm>>
-    >("/api/document/forms", queryParams);
-    console.log("response", response);
-    if (!response.success) {
-      throw new Error(response.message || "문서양식 목록 조회에 실패했습니다.");
-    }
-
-    return response.data;
+    return ApiClient.get<PaginatedResponse<DocumentForm>>(
+      "/api/document/forms",
+      queryParams
+    );
   } catch (error) {
     console.error("문서양식 목록 조회 에러:", error);
     throw error;
@@ -347,15 +298,7 @@ export const getDocumentForms = async (
 
 export const getDocumentForm = async (id: string): Promise<DocumentForm> => {
   try {
-    const response = await ApiClient.get<ApiResponse<DocumentForm>>(
-      `/api/document/forms/${id}`
-    );
-
-    if (!response.success) {
-      throw new Error(response.message || "문서양식 상세 조회에 실패했습니다.");
-    }
-
-    return response.data;
+    return ApiClient.get<DocumentForm>(`/api/document/forms/${id}`);
   } catch (error) {
     console.error("문서양식 상세 조회 에러:", error);
     throw error;
@@ -366,16 +309,7 @@ export const createDocumentForm = async (
   data: CreateDocumentFormRequest
 ): Promise<DocumentForm> => {
   try {
-    const response = await ApiClient.post<ApiResponse<DocumentForm>>(
-      "/api/document/forms",
-      data
-    );
-
-    if (!response.success) {
-      throw new Error(response.message || "문서양식 생성에 실패했습니다.");
-    }
-
-    return response.data;
+    return ApiClient.post<DocumentForm>("/api/document/forms", data);
   } catch (error) {
     console.error("문서양식 생성 에러:", error);
     throw error;
@@ -387,16 +321,7 @@ export const updateDocumentForm = async (
   data: UpdateDocumentFormRequest
 ): Promise<DocumentForm> => {
   try {
-    const response = await ApiClient.patch<ApiResponse<DocumentForm>>(
-      `/api/document/forms/${id}`,
-      data
-    );
-
-    if (!response.success) {
-      throw new Error(response.message || "문서양식 수정에 실패했습니다.");
-    }
-
-    return response.data;
+    return ApiClient.patch<DocumentForm>(`/api/document/forms/${id}`, data);
   } catch (error) {
     console.error("문서양식 수정 에러:", error);
     throw error;
@@ -405,11 +330,7 @@ export const updateDocumentForm = async (
 
 export const deleteDocumentForm = async (id: string): Promise<void> => {
   try {
-    const response = await ApiClient.delete<null>(`/api/document/forms/${id}`);
-
-    if (response !== null) {
-      throw new Error("문서양식 삭제에 실패했습니다.");
-    }
+    await ApiClient.delete<void>(`/api/document/forms/${id}`);
   } catch (error) {
     console.error("문서양식 삭제 에러:", error);
     throw error;

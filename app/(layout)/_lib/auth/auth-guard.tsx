@@ -3,16 +3,19 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "./auth-provider";
+import { hasRole } from "./auth-utils";
 
 interface AuthGuardProps {
   children: React.ReactNode;
   requiredRoles?: string[];
+  systemName?: string;
   redirectTo?: string;
 }
 
 export const AuthGuard: React.FC<AuthGuardProps> = ({
   children,
   requiredRoles = [],
+  systemName = "lias",
   redirectTo = "/login",
 }) => {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -28,9 +31,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
 
       // 권한이 필요한 경우 권한 확인
       if (requiredRoles.length > 0 && user) {
-        const hasRequiredRole = requiredRoles.some((role) =>
-          user.roles.includes(role)
-        );
+        const hasRequiredRole = hasRole(systemName, requiredRoles);
 
         if (!hasRequiredRole) {
           // 권한이 없는 경우 대시보드로 리다이렉트
@@ -39,7 +40,15 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
         }
       }
     }
-  }, [isLoading, isAuthenticated, user, requiredRoles, router, redirectTo]);
+  }, [
+    isLoading,
+    isAuthenticated,
+    user,
+    requiredRoles,
+    systemName,
+    router,
+    redirectTo,
+  ]);
 
   // 로딩 중이거나 인증되지 않은 경우 로딩 표시
   if (isLoading || !isAuthenticated) {
@@ -52,9 +61,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
 
   // 권한이 필요한 경우 권한 확인
   if (requiredRoles.length > 0 && user) {
-    const hasRequiredRole = requiredRoles.some((role) =>
-      user.roles.includes(role)
-    );
+    const hasRequiredRole = hasRole(systemName, requiredRoles);
 
     if (!hasRequiredRole) {
       return (

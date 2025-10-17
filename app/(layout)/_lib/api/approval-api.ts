@@ -1,4 +1,4 @@
-import { ApiClient, ApiResponse } from "./api-client";
+import { ApiClient } from "./api-client";
 
 export interface CreateDraftDocumentDto {
   documentNumber: string;
@@ -116,10 +116,10 @@ export const approvalApi = {
     if (params?.limit) queryParams.limit = params.limit;
     if (params?.status) queryParams.status = params.status.join(",");
 
-    const response = await ApiClient.get<
-      ApiResponse<PaginationData<ApprovalResponseDto>>
-    >("/api/approval/documents", queryParams);
-    return response.data;
+    return ApiClient.get<PaginationData<ApprovalResponseDto>>(
+      "/api/approval/documents",
+      queryParams
+    );
   },
 
   // 결재 문서 조회 (documentListType별)
@@ -132,18 +132,15 @@ export const approvalApi = {
     if (params.page) queryParams.page = params.page;
     if (params.limit) queryParams.limit = params.limit;
 
-    const response = await ApiClient.get<
-      ApiResponse<PaginationData<ApprovalResponseDto>>
-    >("/api/approval/documents", queryParams);
-    return response.data;
+    return ApiClient.get<PaginationData<ApprovalResponseDto>>(
+      "/api/approval/documents",
+      queryParams
+    );
   },
 
   // 기안 문서 조회
   getDraft: async (id: string): Promise<ApprovalResponseDto> => {
-    const response = await ApiClient.get<ApiResponse<ApprovalResponseDto>>(
-      `/api/approval/documents/${id}`
-    );
-    return response.data;
+    return ApiClient.get<ApprovalResponseDto>(`/api/approval/documents/${id}`);
   },
 
   // 기안 문서 수정
@@ -151,50 +148,34 @@ export const approvalApi = {
     id: string,
     data: UpdateDraftDocumentDto
   ): Promise<ApprovalResponseDto> => {
-    const response = await ApiClient.patch<ApiResponse<ApprovalResponseDto>>(
+    return ApiClient.patch<ApprovalResponseDto>(
       `/api/approval/documents/${id}`,
       data
     );
-    return response.data;
   },
 
   // 기안 문서 삭제
   deleteDraft: async (id: string): Promise<void> => {
-    const response = await ApiClient.delete<ApiResponse<void>>(
-      `/api/approval/documents/${id}`
-    );
-    return response.data;
+    return ApiClient.delete<void>(`/api/approval/documents/${id}`);
   },
 
   // 결재 승인
   approveDocument: async (documentId: string): Promise<void> => {
-    const response = await ApiClient.post<ApiResponse<void>>(
-      `/api/approval/${documentId}/approve`
-    );
-    return response.data;
+    return ApiClient.post<void>(`/api/approval/${documentId}/approve`);
   },
 
   // 결재 반려
   rejectDocument: async (documentId: string): Promise<void> => {
-    const response = await ApiClient.post<ApiResponse<void>>(
-      `/api/approval/${documentId}/reject`
-    );
-    return response.data;
+    return ApiClient.post<void>(`/api/approval/${documentId}/reject`);
   },
 
   // 시행
   implementDocument: async (documentId: string): Promise<void> => {
-    const response = await ApiClient.post<ApiResponse<void>>(
-      `/api/approval/${documentId}/implementation`
-    );
-    return response.data;
+    return ApiClient.post<void>(`/api/approval/${documentId}/implementation`);
   },
 
   // 열람
   referenceDocument: async (documentId: string): Promise<void> => {
-    const response = await ApiClient.post<ApiResponse<void>>(
-      `/api/approval/${documentId}/reference`
-    );
-    return response.data;
+    return ApiClient.post<void>(`/api/approval/${documentId}/reference`);
   },
 };

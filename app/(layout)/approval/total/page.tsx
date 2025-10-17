@@ -5,6 +5,7 @@ import {
   useAllApprovalDocuments,
   DocumentListType,
   ApprovalResponseDto,
+  ApprovalStep,
 } from "../../_hooks/use-approval-documents";
 
 export default function TotalPage() {
@@ -246,11 +247,11 @@ export default function TotalPage() {
                             {(() => {
                               const approvalSteps =
                                 currentDocument?.approvalSteps?.filter(
-                                  (s: any) => s.type === "APPROVAL"
+                                  (s: ApprovalStep) => s.type === "APPROVAL"
                                 ) ?? [];
                               return [
                                 ...approvalSteps.map(
-                                  (step: any, idx: number) => (
+                                  (step: ApprovalStep, idx: number) => (
                                     <td
                                       key={"appr-pos-" + idx}
                                       className="border border-gray-400 p-1 text-center min-w-[70px] h-12 align-bottom"
@@ -278,11 +279,11 @@ export default function TotalPage() {
                             {(() => {
                               const approvalSteps =
                                 currentDocument?.approvalSteps?.filter(
-                                  (s: any) => s.type === "APPROVAL"
+                                  (s: ApprovalStep) => s.type === "APPROVAL"
                                 ) ?? [];
                               return [
                                 ...approvalSteps.map(
-                                  (step: any, idx: number) => (
+                                  (step: ApprovalStep, idx: number) => (
                                     <td
                                       key={"appr-name-" + idx}
                                       className="border border-gray-400 p-1 text-center font-semibold h-6 align-bottom relative"
@@ -337,11 +338,11 @@ export default function TotalPage() {
                             {(() => {
                               const agreementSteps =
                                 currentDocument?.approvalSteps?.filter(
-                                  (s: any) => s.type === "AGREEMENT"
+                                  (s: ApprovalStep) => s.type === "AGREEMENT"
                                 ) ?? [];
                               return [
                                 ...agreementSteps.map(
-                                  (step: any, idx: number) => (
+                                  (step: ApprovalStep, idx: number) => (
                                     <td
                                       key={"agree-pos-" + idx}
                                       className="border border-gray-400 p-1 text-center min-w-[70px] h-12 align-bottom"
@@ -369,11 +370,11 @@ export default function TotalPage() {
                             {(() => {
                               const agreementSteps =
                                 currentDocument?.approvalSteps?.filter(
-                                  (s: any) => s.type === "AGREEMENT"
+                                  (s: ApprovalStep) => s.type === "AGREEMENT"
                                 ) ?? [];
                               return [
                                 ...agreementSteps.map(
-                                  (step: any, idx: number) => (
+                                  (step: ApprovalStep, idx: number) => (
                                     <td
                                       key={"agree-name-" + idx}
                                       className="border border-gray-400 p-1 text-center font-semibold h-6 align-bottom relative"
@@ -451,12 +452,12 @@ export default function TotalPage() {
                     <td className="border border-gray-400 p-2" colSpan={3}>
                       {(
                         currentDocument?.approvalSteps?.filter(
-                          (s: any) => s.type === "REFERENCE"
+                          (s: ApprovalStep) => s.type === "REFERENCE"
                         ) ?? []
                       ).length > 0 ? (
                         currentDocument?.approvalSteps
-                          ?.filter((s: any) => s.type === "REFERENCE")
-                          .map((step: any, idx: number) => (
+                          ?.filter((s: ApprovalStep) => s.type === "REFERENCE")
+                          .map((step: ApprovalStep, idx: number) => (
                             <span key={idx} className="mr-2">
                               {step.approver?.name} ({step.approver?.position})
                             </span>
@@ -473,12 +474,12 @@ export default function TotalPage() {
                     <td className="border border-gray-400 p-2" colSpan={3}>
                       {(
                         currentDocument?.approvalSteps?.filter(
-                          (s: any) => s.type === "IMPLEMENTATION"
+                          (s: ApprovalStep) => s.type === "IMPLEMENTATION"
                         ) ?? []
                       ).length > 0 ? (
                         currentDocument?.approvalSteps
-                          ?.filter((s: any) => s.type === "IMPLEMENTATION")
-                          .map((step: any, idx: number) => (
+                          ?.filter((s: ApprovalStep) => s.type === "IMPLEMENTATION")
+                          .map((step: ApprovalStep, idx: number) => (
                             <span key={idx} className="mr-2">
                               {step.approver?.name} ({step.approver?.position})
                             </span>

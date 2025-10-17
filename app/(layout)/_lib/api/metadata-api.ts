@@ -1,6 +1,6 @@
 // 메타데이터 관련 API 호출 함수
 
-import { ApiClient, ApiResponse } from "./api-client";
+import { ApiClient } from "./api-client";
 
 // 부서 정보 타입 정의
 export interface Department {
@@ -31,11 +31,11 @@ export interface DepartmentWithEmployees {
 // 부서별 직원 목록 조회
 export const getMetadataApi = async (): Promise<DepartmentWithEmployees[]> => {
   try {
-    const response = await ApiClient.get<ApiResponse<DepartmentWithEmployees>>(
+    const response = await ApiClient.get<DepartmentWithEmployees>(
       "/api/metadata"
     );
-    console.log(response.data);
-    return [response.data];
+    console.log(response);
+    return [response];
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(error.message);

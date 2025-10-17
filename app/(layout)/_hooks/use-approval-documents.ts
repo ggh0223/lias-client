@@ -62,6 +62,7 @@ export function useApprovalDocuments({
       };
 
       const result = await approvalApi.getApprovalDocuments(params);
+      console.log("문서 조회 결과:", result);
       setData(result);
     } catch (err) {
       setError(
@@ -75,6 +76,7 @@ export function useApprovalDocuments({
 
   useEffect(() => {
     fetchDocuments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listType, page, limit, enabled]);
 
   const refetch = () => {
@@ -258,6 +260,7 @@ export const useAllApprovalDocuments = (page = 1, limit = 20) => {
 
   useEffect(() => {
     fetchAllDocuments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, limit]);
 
   const refetch = () => {

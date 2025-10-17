@@ -6,6 +6,9 @@ import {
   isAuthenticated,
   getUserInfo,
   setUserInfo,
+  setAccessToken,
+  setRefreshToken,
+  getAccessToken,
   logout as logoutUtil,
 } from "./auth-utils";
 import { loginApi, getUserInfoApi } from "../api/auth-api";
@@ -82,22 +85,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     initializeAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 로그인 함수
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const response = await loginApi(email, password);
+      const loginResponse = await loginApi(email, password);
 
-      if (response.success && response.data) {
-        // 토큰과 사용자 정보 저장
-        localStorage.setItem("accessToken", response.data.accessToken);
-        setUserInfo(response.data);
-        setUser(response.data);
-      } else {
-        throw new Error(response.message || "로그인에 실패했습니다.");
+      // SSO 응답에서 사용자 정보 추출
+      const userInfo: AuthUser = {
+        id: loginResponse.id,
+        email: loginResponse.email,
+        name: loginResponse.name,
+        employeeNumber: loginResponse.employeeNumber,
+        department: loginResponse.department,
+        position: loginResponse.position,
+        rank: loginResponse.rank,
+        systemRoles: loginResponse.systemRoles,
+      };
+
+      // 토큰과 사용자 정보 저장
+      setAccessToken(loginResponse.accessToken);
+      if (loginResponse.refreshToken) {
+        setRefreshToken(loginResponse.refreshToken);
       }
+      setUserInfo(userInfo);
+      setUser(userInfo);
     } catch (error) {
       console.error("로그인 실패:", error);
       throw error;
@@ -115,7 +130,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // 사용자 정보 새로고침
   const refreshUserInfo = async () => {
     try {
-      const userInfo = await getUserInfoApi();
+      const token = getAccessToken();
+      if (!token) {
+        throw new Error("토큰이 없습니다.");
+      }
+
+      const userInfo = await getUserInfoApi(token);
       setUserInfo(userInfo);
       setUser(userInfo);
     } catch (error) {

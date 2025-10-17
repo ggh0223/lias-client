@@ -1,36 +1,45 @@
 // 토큰 관리 및 검증 유틸리티
 
 export interface AuthUser {
+  id: string;
   email: string;
   name: string;
-  department: string;
-  position: string;
-  rank: string;
-  roles: string[];
+  employeeNumber: string;
+  department?: string;
+  position?: string;
+  rank?: string;
+  systemRoles?: Record<string, string[]>;
 }
 
 export interface LoginResponse {
-  success: boolean;
-  data: {
-    accessToken: string;
-    email: string;
-    name: string;
-    department: string;
-    position: string;
-    rank: string;
-    roles: string[];
-  };
-  message?: string;
+  tokenType: string;
+  accessToken: string;
+  expiresAt: string;
+  refreshToken?: string;
+  refreshTokenExpiresAt?: string;
+  id: string;
+  name: string;
+  email: string;
+  employeeNumber: string;
+  phoneNumber?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  hireDate?: string;
+  status: string;
+  department?: string;
+  position?: string;
+  rank?: string;
+  systemRoles?: Record<string, string[]>;
 }
 
-// 토큰 저장
+// Access Token 저장
 export const setAccessToken = (token: string): void => {
   if (typeof window !== "undefined") {
     localStorage.setItem("accessToken", token);
   }
 };
 
-// 토큰 가져오기
+// Access Token 가져오기
 export const getAccessToken = (): string | null => {
   if (typeof window !== "undefined") {
     return localStorage.getItem("accessToken");
@@ -38,10 +47,32 @@ export const getAccessToken = (): string | null => {
   return null;
 };
 
-// 토큰 삭제
+// Access Token 삭제
 export const removeAccessToken = (): void => {
   if (typeof window !== "undefined") {
     localStorage.removeItem("accessToken");
+  }
+};
+
+// Refresh Token 저장
+export const setRefreshToken = (token: string): void => {
+  if (typeof window !== "undefined") {
+    localStorage.setItem("refreshToken", token);
+  }
+};
+
+// Refresh Token 가져오기
+export const getRefreshToken = (): string | null => {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("refreshToken");
+  }
+  return null;
+};
+
+// Refresh Token 삭제
+export const removeRefreshToken = (): void => {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("refreshToken");
   }
 };
 
@@ -88,18 +119,23 @@ export const isAuthenticated = (): boolean => {
 // 로그아웃 처리
 export const logout = (): void => {
   removeAccessToken();
+  removeRefreshToken();
   removeUserInfo();
 };
 
-// 권한 확인
-export const hasRole = (requiredRoles: string[]): boolean => {
+// 권한 확인 (SSO systemRoles 구조에 맞춤)
+export const hasRole = (
+  systemName: string,
+  requiredRoles: string[]
+): boolean => {
   const user = getUserInfo();
-  if (!user) return false;
+  if (!user || !user.systemRoles) return false;
 
-  return requiredRoles.some((role) => user.roles.includes(role));
+  const userRoles = user.systemRoles[systemName] || [];
+  return requiredRoles.some((role) => userRoles.includes(role));
 };
 
 // 관리자 권한 확인
-export const isAdmin = (): boolean => {
-  return hasRole(["admin"]);
+export const isAdmin = (systemName: string = "lias"): boolean => {
+  return hasRole(systemName, ["ADMIN"]);
 };
