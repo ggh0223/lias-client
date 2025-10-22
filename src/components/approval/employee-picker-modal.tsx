@@ -1,14 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { apiClient } from "@/lib/api-client";
 import DepartmentTree from "./department-tree";
-import type { DepartmentHierarchy, DepartmentEmployee } from "@/types/api";
+import type {
+  DepartmentHierarchy,
+  DepartmentEmployee,
+  EmployeeDetail,
+  Position,
+} from "@/types/api";
 
 interface EmployeePickerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (employee: any) => void;
+  onSelect: (employee: EmployeeDetail) => void;
   token: string;
   title?: string;
 }
@@ -29,13 +34,7 @@ export default function EmployeePickerModal({
   const [error, setError] = useState("");
 
   // 부서 계층 구조 및 직원 목록 로드
-  useEffect(() => {
-    if (isOpen) {
-      loadDepartmentHierarchy();
-    }
-  }, [isOpen]);
-
-  const loadDepartmentHierarchy = async () => {
+  const loadDepartmentHierarchy = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
@@ -55,7 +54,13 @@ export default function EmployeePickerModal({
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadDepartmentHierarchy();
+    }
+  }, [isOpen, loadDepartmentHierarchy]);
 
   const handleDepartmentSelect = (department: DepartmentHierarchy) => {
     setSelectedDepartment(department);
@@ -77,6 +82,10 @@ export default function EmployeePickerModal({
             id: employee.departmentId,
             departmentCode: "",
             departmentName: selectedDepartment?.departmentName || "",
+            type: "",
+            order: 0,
+            createdAt: "",
+            updatedAt: "",
           },
           position: employee.positionTitle
             ? {
@@ -85,11 +94,14 @@ export default function EmployeePickerModal({
                 positionTitle: employee.positionTitle,
                 level: employee.positionLevel || 0,
                 hasManagementAuthority: false,
+                isManager: false,
+                createdAt: "",
+                updatedAt: "",
               }
-            : null,
+            : ({} as Position),
         },
       ],
-    };
+    } as EmployeeDetail;
     onSelect(employeeDetail);
     onClose();
     // Reset
