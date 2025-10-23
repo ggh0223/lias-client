@@ -84,6 +84,49 @@ class ApiClient {
     });
   }
 
+  // Test Data API
+  async createTestData(
+    token: string,
+    data: {
+      scenario: string;
+      documentCount?: number;
+      titlePrefix?: string;
+      progress?: number;
+    }
+  ) {
+    return this.request<{
+      success: boolean;
+      message: string;
+      data?: {
+        forms: string[];
+        formVersions: string[];
+        documents: string[];
+        approvalLineTemplates: string[];
+        approvalLineTemplateVersions: string[];
+        approvalStepTemplates: string[];
+        approvalLineSnapshots: string[];
+        approvalStepSnapshots: string[];
+      };
+    }>("/v2/test-data", {
+      method: "POST",
+      token,
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteAllTestData(token: string) {
+    return this.request<{
+      success: boolean;
+      message: string;
+      data?: {
+        deletedCount: number;
+      };
+    }>("/v2/test-data/all", {
+      method: "DELETE",
+      token,
+    });
+  }
+
   // Document API
   async createDocument(token: string, data: Record<string, unknown>) {
     return this.request<Document>("/v2/document", {
@@ -114,6 +157,13 @@ class ApiClient {
       method: "POST",
       token,
       body: JSON.stringify(data),
+    });
+  }
+
+  async getDocumentApprovalSnapshot(token: string, documentId: string) {
+    return this.request(`/v2/document/${documentId}/approval-snapshot`, {
+      method: "GET",
+      token,
     });
   }
 

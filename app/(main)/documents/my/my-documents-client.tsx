@@ -162,14 +162,17 @@ export default function MyDocumentsClient({
                   >
                     제출일
                   </th>
-                  <th scope="col" className="relative px-6 py-3">
-                    <span className="sr-only">Actions</span>
-                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredDocuments.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-gray-50">
+                  <tr
+                    key={doc.id}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() =>
+                      (window.location.href = `/documents/${doc.id}`)
+                    }
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
                         {doc.title}
@@ -188,14 +191,6 @@ export default function MyDocumentsClient({
                       {doc.submittedAt
                         ? new Date(doc.submittedAt).toLocaleDateString()
                         : "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Link
-                        href={`/documents/${doc.id}`}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        보기 →
-                      </Link>
                     </td>
                   </tr>
                 ))}
