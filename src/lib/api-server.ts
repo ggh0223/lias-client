@@ -196,7 +196,7 @@ class ApiServer {
   }
 
   /**
-   * 7. 문서양식 목록 조회
+   * 7. 문서템플릿 목록 조회
    * GET /api/approval-flow/forms
    */
   async getForms(token: string) {
@@ -206,7 +206,7 @@ class ApiServer {
   }
 
   /**
-   * 8. 문서양식 상세 조회
+   * 8. 문서템플릿 상세 조회
    * GET /api/approval-flow/forms/:formId
    */
   async getFormById(token: string, formId: string) {
@@ -216,7 +216,7 @@ class ApiServer {
   }
 
   /**
-   * 9. 문서양식 버전 상세 조회
+   * 9. 문서템플릿 버전 상세 조회
    * GET /api/approval-flow/forms/:formId/versions/:versionId
    */
   async getFormVersion(token: string, formId: string, versionId: string) {
@@ -228,7 +228,7 @@ class ApiServer {
   }
 
   /**
-   * 10. 문서양식 생성
+   * 10. 문서템플릿 생성
    * POST /api/approval-flow/forms
    */
   async createForm(token: string, data: CreateFormRequest) {
@@ -239,7 +239,7 @@ class ApiServer {
   }
 
   /**
-   * 11. 문서양식 버전 수정
+   * 11. 문서템플릿 버전 수정
    * PATCH /api/approval-flow/forms/:formId/versions
    */
   async updateFormVersion(

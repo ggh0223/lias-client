@@ -67,11 +67,11 @@ export default function FormEditClient({
           : undefined,
       });
 
-      alert("문서양식이 수정되었습니다.");
+      alert("문서템플릿이 수정되었습니다.");
       router.push(`/admin/forms/${form.id}`);
     } catch (err: unknown) {
       setError(
-        err instanceof Error ? err.message : "문서양식 수정에 실패했습니다."
+        err instanceof Error ? err.message : "문서템플릿 수정에 실패했습니다."
       );
     } finally {
       setSaving(false);
@@ -82,10 +82,11 @@ export default function FormEditClient({
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
-          문서양식 수정 (새 버전 생성)
+          문서템플릿 수정 (새 버전 생성)
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          문서양식을 수정하면 새 버전이 생성됩니다. 결재선도 변경할 수 있습니다.
+          문서템플릿을 수정하면 새 버전이 생성됩니다. 결재선도 변경할 수
+          있습니다.
         </p>
       </div>
 
@@ -381,7 +382,7 @@ export default function FormEditClient({
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="block text-sm font-medium text-gray-700">
-              문서양식 템플릿 *
+              문서 템플릿 *
             </label>
             <div className="flex items-center space-x-2">
               <button

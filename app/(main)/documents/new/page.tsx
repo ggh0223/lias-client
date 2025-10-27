@@ -37,7 +37,7 @@ export default function NewDocumentPage() {
   } | null>(null);
   const [loadingApprovalLine, setLoadingApprovalLine] = useState(false);
 
-  // 문서양식 목록 조회
+  // 문서템플릿 목록 조회
   useEffect(() => {
     const fetchForms = async () => {
       const token = clientAuth.getToken();
@@ -50,16 +50,16 @@ export default function NewDocumentPage() {
       try {
         const formList = await apiClient.getForms(token);
 
-        // ACTIVE 상태의 문서양식만 필터링
+        // ACTIVE 상태의 문서템플릿만 필터링
         const activeForms = formList.filter((form) => form.status === "ACTIVE");
 
         setForms(activeForms);
 
         if (activeForms.length === 0) {
-          setError("사용 가능한 문서양식이 없습니다. 관리자에게 문의하세요.");
+          setError("사용 가능한 문서템플릿이 없습니다. 관리자에게 문의하세요.");
         }
       } catch (err: unknown) {
-        console.error("❌ 문서양식 목록 조회 실패:", err);
+        console.error("❌ 문서템플릿 목록 조회 실패:", err);
 
         if (err instanceof Error) {
           // 401 Unauthorized - 토큰이 만료되었거나 유효하지 않음
@@ -77,7 +77,7 @@ export default function NewDocumentPage() {
 
           setError(`API 에러: ${err.message}`);
         } else {
-          setError("문서양식 목록을 불러오는데 실패했습니다.");
+          setError("문서템플릿 목록을 불러오는데 실패했습니다.");
         }
       } finally {
         setLoadingForms(false);
@@ -87,7 +87,7 @@ export default function NewDocumentPage() {
     fetchForms();
   }, [router]);
 
-  // 문서양식 선택 시 버전 정보 조회 및 템플릿 적용
+  // 문서템플릿 선택 시 버전 정보 조회 및 템플릿 적용
   const handleFormSelect = async (formId: string) => {
     setSelectedFormId(formId);
     setError("");
@@ -109,11 +109,11 @@ export default function NewDocumentPage() {
     try {
       const form = forms.find((f) => f.id === formId);
       if (!form || !form.currentVersionId) {
-        setError("문서양식의 현재 버전을 찾을 수 없습니다.");
+        setError("문서템플릿의 현재 버전을 찾을 수 없습니다.");
         return;
       }
 
-      // 문서양식 버전 정보 조회
+      // 문서템플릿 버전 정보 조회
       const formVersion = await apiClient.getFormVersion(
         token,
         formId,
@@ -123,7 +123,7 @@ export default function NewDocumentPage() {
       // formVersionId 설정
       setFormVersionId(formVersion.id);
 
-      // 제목에 문서양식 이름 자동 입력 (사용자가 수정 가능)
+      // 제목에 문서템플릿 이름 자동 입력 (사용자가 수정 가능)
       setTitle(form.name);
 
       // 템플릿을 내용에 자동 입력
@@ -151,7 +151,7 @@ export default function NewDocumentPage() {
         }
         setError(err.message);
       } else {
-        setError("문서양식 정보를 불러오는데 실패했습니다.");
+        setError("문서템플릿 정보를 불러오는데 실패했습니다.");
       }
     }
   };
@@ -195,7 +195,7 @@ export default function NewDocumentPage() {
     }
 
     if (!formVersionId) {
-      setError("문서양식을 선택해주세요.");
+      setError("문서템플릿을 선택해주세요.");
       setLoading(false);
       return;
     }
@@ -258,7 +258,7 @@ export default function NewDocumentPage() {
               ></path>
             </svg>
             <p className="text-center text-gray-500">
-              문서양식 목록을 불러오는 중...
+              문서템플릿 목록을 불러오는 중...
             </p>
           </div>
         </div>
@@ -307,7 +307,7 @@ export default function NewDocumentPage() {
                 htmlFor="formSelect"
                 className="block text-sm font-medium text-gray-700"
               >
-                문서양식 선택 <span className="text-red-500">*</span>
+                문서템플릿 선택 <span className="text-red-500">*</span>
               </label>
               <select
                 id="formSelect"
@@ -319,8 +319,8 @@ export default function NewDocumentPage() {
               >
                 <option value="">
                   {forms.length === 0
-                    ? "사용 가능한 문서양식이 없습니다"
-                    : "문서양식을 선택하세요"}
+                    ? "사용 가능한 문서템플릿이 없습니다"
+                    : "문서템플릿을 선택하세요"}
                 </option>
                 {forms.map((form) => (
                   <option key={form.id} value={form.id}>
@@ -330,7 +330,7 @@ export default function NewDocumentPage() {
                 ))}
               </select>
               <p className="mt-1 text-xs text-gray-500">
-                문서양식을 선택하면 제목과 내용이 자동으로 채워집니다.
+                문서템플릿을 선택하면 제목과 내용이 자동으로 채워집니다.
               </p>
             </div>
 
@@ -478,7 +478,7 @@ export default function NewDocumentPage() {
                   />
                 </svg>
                 <p className="mt-4 text-sm text-gray-500">
-                  문서양식을 선택하면
+                  문서템플릿을 선택하면
                   <br />
                   결재선이 표시됩니다
                 </p>

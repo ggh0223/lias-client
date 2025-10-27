@@ -6,7 +6,7 @@ import GuideContentSection from "./sections/guide-content-section";
 
 export default function GuidePage() {
   const [activeTab, setActiveTab] = useState<
-    "overview" | "flow" | "entities" | "roles" | "status"
+    "overview" | "glossary" | "flow" | "entities" | "roles" | "status"
   >("overview");
 
   return (
@@ -24,7 +24,13 @@ export default function GuidePage() {
         activeTab={activeTab}
         onTabChange={(tab) =>
           setActiveTab(
-            tab as "overview" | "flow" | "entities" | "roles" | "status"
+            tab as
+              | "overview"
+              | "glossary"
+              | "flow"
+              | "entities"
+              | "roles"
+              | "status"
           )
         }
       />
@@ -33,6 +39,7 @@ export default function GuidePage() {
       <GuideContentSection
         activeTab={activeTab}
         OverviewSection={OverviewSection}
+        GlossarySection={GlossarySection}
         FlowSection={FlowSection}
         EntitiesSection={EntitiesSection}
         RolesSection={RolesSection}
@@ -106,6 +113,207 @@ function OverviewSection() {
   );
 }
 
+// 용어 정의
+function GlossarySection() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">용어 정의</h2>
+        <p className="text-gray-700 mb-6">
+          결재 시스템에서 사용하는 주요 용어와 개념을 설명합니다.
+        </p>
+      </div>
+
+      {/* 템플릿 관련 용어 */}
+      <div className="bg-blue-50 border-l-4 border-blue-400 p-6 rounded-r-lg">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          📝 템플릿 (관리 측면)
+        </h3>
+        <p className="text-sm text-gray-700 mb-4">
+          관리자가 생성하고 관리하는 재사용 가능한 템플릿들입니다.
+        </p>
+
+        <div className="space-y-3">
+          <div className="bg-white p-4 rounded-lg shadow-sm">
+            <h4 className="font-semibold text-gray-900 mb-2">
+              결재선 템플릿 (Approval Line Template)
+            </h4>
+            <p className="text-sm text-gray-700 mb-2">
+              결재 프로세스의 구조를 정의하는 템플릿입니다. 합의, 결재, 시행,
+              참조 단계로 구성됩니다.
+            </p>
+            <ul className="text-xs text-gray-600 list-disc list-inside space-y-1">
+              <li>합의 단계: 결재 전 사전 협의 (5개 칸)</li>
+              <li>결재 단계: 최종 승인 담당 (5개 칸)</li>
+              <li>시행 단계: 실행 담당 (여러 개 가능)</li>
+              <li>참조 단계: 정보 공유 대상 (여러 개 가능)</li>
+            </ul>
+          </div>
+
+          <div className="bg-white p-4 rounded-lg shadow-sm">
+            <h4 className="font-semibold text-gray-900 mb-2">
+              결재단계 템플릿 (Approval Step Template)
+            </h4>
+            <p className="text-sm text-gray-700 mb-2">
+              결재선 템플릿 내에서 각 결재 단계의 담당자를 결정하는 규칙입니다.
+            </p>
+            <ul className="text-xs text-gray-600 list-disc list-inside space-y-1">
+              <li>기안자 (DRAFTER): 문서를 작성한 사람</li>
+              <li>상급자 (DRAFTER_SUPERIOR): 기안자의 상급자</li>
+              <li>고정직원 (FIXED): 미리 지정된 특정 직원</li>
+              <li>부서 (DEPARTMENT_REFERENCE): 특정 부서 전체</li>
+            </ul>
+          </div>
+
+          <div className="bg-white p-4 rounded-lg shadow-sm">
+            <h4 className="font-semibold text-gray-900 mb-2">
+              문서 템플릿 (Form Template)
+            </h4>
+            <p className="text-sm text-gray-700 mb-2">
+              실제 문서 작성에 사용되는 HTML 템플릿과 결재선 정보가 포함된
+              템플릿입니다.
+            </p>
+            <ul className="text-xs text-gray-600 list-disc list-inside space-y-1">
+              <li>HTML 템플릿: 문서의 구조와 스타일</li>
+              <li>결재선 정보: 연결된 결재선 템플릿 버전</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* 문서 관련 용어 */}
+      <div className="bg-green-50 border-l-4 border-green-400 p-6 rounded-r-lg">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          📄 문서 (실제 데이터)
+        </h3>
+        <p className="text-sm text-gray-700 mb-4">
+          사용자가 템플릿을 사용해서 작성한 실제 문서입니다.
+        </p>
+
+        <div className="space-y-3">
+          <div className="bg-white p-4 rounded-lg shadow-sm">
+            <h4 className="font-semibold text-gray-900 mb-2">
+              문서 (Document)
+            </h4>
+            <p className="text-sm text-gray-700 mb-2">
+              문서템플릿을 사용하여 작성된 실제 기안 문서입니다. 작성자는 자신의
+              내용을 추가하여 저장합니다.
+            </p>
+            <ul className="text-xs text-gray-600 list-disc list-inside space-y-1">
+              <li>제목, 내용, 메타데이터 포함</li>
+              <li>임시저장 가능 (DRAFT 상태)</li>
+              <li>제출 시 결재 프로세스 시작</li>
+            </ul>
+          </div>
+
+          <div className="bg-white p-4 rounded-lg shadow-sm">
+            <h4 className="font-semibold text-gray-900 mb-2">
+              문서 상태 (Document Status)
+            </h4>
+            <p className="text-sm text-gray-700 mb-2">
+              문서의 처리 상태를 나타냅니다.
+            </p>
+            <ul className="text-xs text-gray-600 list-disc list-inside space-y-1">
+              <li>DRAFT: 임시저장, 수정 가능</li>
+              <li>PENDING: 결재 대기 중</li>
+              <li>APPROVED: 결재 완료</li>
+              <li>REJECTED: 반려됨</li>
+              <li>IMPLEMENTED: 시행 완료</li>
+              <li>CANCELLED: 취소됨</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* 스냅샷 관련 용어 */}
+      <div className="bg-purple-50 border-l-4 border-purple-400 p-6 rounded-r-lg">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          🔒 스냅샷 (불변성 보장)
+        </h3>
+        <p className="text-sm text-gray-700 mb-4">
+          문서 제출 시 템플릿 데이터가 영구 데이터로 변환됩니다.
+        </p>
+
+        <div className="space-y-3">
+          <div className="bg-white p-4 rounded-lg shadow-sm">
+            <h4 className="font-semibold text-gray-900 mb-2">
+              결재선 스냅샷 (Approval Line Snapshot)
+            </h4>
+            <p className="text-sm text-gray-700 mb-2">
+              문서 제출 시점의 결재선 구조를 영구적으로 저장한 데이터입니다.
+              템플릿이 변경되어도 이미 제출된 문서의 결재선은 변경되지 않습니다.
+            </p>
+            <ul className="text-xs text-gray-600 list-disc list-inside space-y-1">
+              <li>제출 시점의 결재선 구조 저장</li>
+              <li>불변성 보장</li>
+              <li>결재 완료까지 보존</li>
+            </ul>
+          </div>
+
+          <div className="bg-white p-4 rounded-lg shadow-sm">
+            <h4 className="font-semibold text-gray-900 mb-2">
+              결재단계 스냅샷 (Approval Step Snapshot)
+            </h4>
+            <p className="text-sm text-gray-700 mb-2">
+              제출 시점에 실제 담당자가 결정되어 저장된 결재 단계 정보입니다.
+            </p>
+            <ul className="text-xs text-gray-600 list-disc list-inside space-y-1">
+              <li>실제 담당자 정보 포함</li>
+              <li>결재 진행 상태 추적</li>
+              <li>결재 이력 관리</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* 용어 관계도 */}
+      <div className="mt-8 bg-gray-50 p-6 rounded-lg">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          용어 관계도
+        </h3>
+        <div className="text-sm text-gray-700 space-y-3">
+          <div className="bg-white p-4 rounded-lg">
+            <div className="font-semibold mb-2">📊 관리 계층:</div>
+            <div className="text-xs space-y-1 pl-4">
+              <div>결재선 템플릿</div>
+              <div className="text-gray-400">└─ 결재단계 템플릿 (여러 개)</div>
+            </div>
+            <div className="mt-2 text-xs space-y-1 pl-4">
+              <div>문서 템플릿</div>
+              <div className="text-gray-400">├─ HTML 콘텐츠</div>
+              <div className="text-gray-400">└─ 결재선 템플릿 버전 (연결)</div>
+            </div>
+          </div>
+
+          <div className="bg-white p-4 rounded-lg">
+            <div className="font-semibold mb-2">📝 문서 생성:</div>
+            <div className="text-xs space-y-1 pl-4">
+              <div>문서 (Document)</div>
+              <div className="text-gray-400">├─ 문서템플릿 사용</div>
+              <div className="text-gray-400">├─ 사용자 내용 추가</div>
+              <div className="text-gray-400">└─ 임시저장 (DRAFT)</div>
+            </div>
+          </div>
+
+          <div className="bg-white p-4 rounded-lg">
+            <div className="font-semibold mb-2">🔄 제출 프로세스:</div>
+            <div className="text-xs space-y-1 pl-4">
+              <div>문서 제출 시</div>
+              <div className="text-gray-400">
+                ├─ 결재선 템플릿 → 결재선 스냅샷 변환
+              </div>
+              <div className="text-gray-400">
+                ├─ 결재단계 템플릿 → 결재단계 스냅샷 변환
+              </div>
+              <div className="text-gray-400">└─ 담당자 실시간 결정</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // 결재 흐름
 function FlowSection() {
   return (
@@ -135,7 +343,7 @@ function FlowSection() {
               수정하거나 삭제할 수 있습니다.
             </p>
             <div className="mt-2 text-sm text-gray-500">
-              • 문서양식 선택 → 내용 작성 → 임시저장
+              • 문서템플릿 선택 → 내용 작성 → 임시저장
             </div>
           </div>
         </div>
@@ -302,7 +510,7 @@ function EntitiesSection() {
             <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-mono mr-2">
               Form
             </span>
-            문서양식
+            문서템플릿
           </h3>
           <p className="text-gray-700 mb-3">
             문서의 기본 양식을 정의합니다. 각 양식은 여러 버전(FormVersion)을

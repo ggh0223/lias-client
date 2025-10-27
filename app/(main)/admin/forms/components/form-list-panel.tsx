@@ -1,5 +1,5 @@
 /**
- * Form List Panel - 문서양식 목록 패널
+ * Form List Panel - 문서템플릿 목록 패널
  */
 
 import type { Form } from "@/types/approval-flow";

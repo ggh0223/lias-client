@@ -10,7 +10,7 @@ export default function CreateFormWidget() {
       href="/admin/forms/new"
       className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
     >
-      새 양식 생성
+      새 템플릿 생성
     </Link>
   );
 }

@@ -13,6 +13,7 @@ export default function TabNavigationPanel({
 }: TabNavigationPanelProps) {
   const tabs = [
     { value: "overview", label: "시스템 개요" },
+    { value: "glossary", label: "용어 정의" },
     { value: "flow", label: "결재 흐름" },
     { value: "entities", label: "데이터 구조" },
     { value: "roles", label: "결재라인 역할" },

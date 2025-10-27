@@ -25,7 +25,7 @@ export default function MainLayout({ children, user }: MainLayoutProps) {
     { name: "내 결재 대기", href: "/approval/pending", icon: "⏳" },
     { name: "내 문서", href: "/documents/my", icon: "📄" },
     { name: "문서 작성", href: "/documents/new", icon: "✏️" },
-    { name: "문서양식 관리", href: "/admin/forms", icon: "📋" },
+    { name: "문서템플릿 관리", href: "/admin/forms", icon: "📋" },
     { name: "결재선 관리", href: "/admin/approval-lines", icon: "📌" },
   ];
 

@@ -73,7 +73,7 @@ export interface ApprovalStepTemplate {
 }
 
 /**
- * 문서양식 생성 요청
+ * 문서템플릿 생성 요청
  */
 export interface CreateFormRequest {
   formName: string;
@@ -205,7 +205,7 @@ export interface CreateTemplateVersionRequest {
 }
 
 /**
- * 문서양식
+ * 문서템플릿
  */
 export interface Form {
   id: string;
@@ -219,7 +219,7 @@ export interface Form {
 }
 
 /**
- * 문서양식 버전
+ * 문서템플릿 버전
  */
 export interface FormVersion {
   id: string;
@@ -233,7 +233,7 @@ export interface FormVersion {
 }
 
 /**
- * 문서양식 버전 상세 정보
+ * 문서템플릿 버전 상세 정보
  */
 export interface FormVersionDetail extends FormVersion {
   approvalLineInfo?: {
@@ -256,7 +256,7 @@ export interface FormVersionDetail extends FormVersion {
 }
 
 /**
- * 문서양식 수정 요청
+ * 문서템플릿 수정 요청
  */
 export interface UpdateFormVersionRequest {
   versionNote?: string;
