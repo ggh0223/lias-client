@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { clientAuth } from "@/lib/auth-client";
 import { apiClient } from "@/lib/api-client";
-import type { Form } from "@/types/api";
+import type { Form } from "@/types/approval-flow";
 
 interface ApprovalStep {
   stepOrder: number;
@@ -171,8 +171,8 @@ export default function NewDocumentPage() {
       });
 
       setApprovalLinePreview({
-        templateName: preview.templateName,
-        steps: preview.steps,
+        templateName: (preview as { templateName?: string }).templateName || "",
+        steps: (preview as { steps?: ApprovalStep[] }).steps || [],
       });
     } catch (err) {
       console.error("결재선 미리보기 로드 실패:", err);
@@ -201,7 +201,7 @@ export default function NewDocumentPage() {
     }
 
     try {
-      const document = await apiClient.createDocument(token, {
+      const document = await apiClient.createDocumentV2(token, {
         formVersionId,
         title,
         content,

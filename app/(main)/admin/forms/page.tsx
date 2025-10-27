@@ -1,5 +1,5 @@
 import { getToken } from "@/lib/auth-server";
-import { apiClient } from "@/lib/api-client";
+import { apiServer } from "@/lib/api-server";
 import { redirect } from "next/navigation";
 import FormsListClient from "./forms-list-client";
 
@@ -11,7 +11,7 @@ export default async function FormsListPage() {
   }
 
   try {
-    const forms = await apiClient.getForms(token);
+    const forms = await apiServer.getForms(token);
     return (
       <FormsListClient
         initialForms={Array.isArray(forms) ? forms : []}

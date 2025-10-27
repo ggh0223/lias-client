@@ -1,5 +1,5 @@
 import { getToken } from "@/lib/auth-server";
-import { apiClient } from "@/lib/api-client";
+import { approvalProcessService } from "@/services/approval-process.service";
 import PendingApprovalsClient from "./pending-client";
 
 export default async function PendingApprovalsPage() {
@@ -10,7 +10,7 @@ export default async function PendingApprovalsPage() {
   }
 
   try {
-    const pendingApprovals = await apiClient.getMyPendingApprovals(token);
+    const pendingApprovals = await approvalProcessService.fetchMyPending(token);
 
     return (
       <PendingApprovalsClient

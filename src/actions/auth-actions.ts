@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { apiClient } from "@/lib/api-client";
+import { apiServer } from "@/lib/api-server";
 import { setToken, setUser, removeToken, removeUser } from "@/lib/auth-server";
 
 /**
@@ -18,7 +18,7 @@ export async function loginAction(formData: FormData) {
     // 이메일 형식인지 확인
     const isEmail = identifier.includes("@");
 
-    const response = await apiClient.generateToken(
+    const response = await apiServer.generateToken(
       isEmail ? { email: identifier } : { employeeNumber: identifier }
     );
 
@@ -48,7 +48,7 @@ export async function quickLoginAction(employeeNumber: string) {
   }
 
   try {
-    const response = await apiClient.generateToken({ employeeNumber });
+    const response = await apiServer.generateToken({ employeeNumber });
 
     // 서버 측 토큰과 사용자 정보 저장 (쿠키)
     await setToken(response.accessToken);

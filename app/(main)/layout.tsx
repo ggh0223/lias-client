@@ -1,6 +1,8 @@
 import { getToken, getUser } from "@/lib/auth-server";
 import { redirect } from "next/navigation";
 import MainLayout from "@/components/layout/main-layout";
+import { DocumentProvider } from "@/contexts/document-context";
+import { ApprovalProcessProvider } from "@/contexts/approval-process-context";
 
 export default async function Layout({
   children,
@@ -14,5 +16,11 @@ export default async function Layout({
     redirect("/login");
   }
 
-  return <MainLayout user={user}>{children}</MainLayout>;
+  return (
+    <DocumentProvider>
+      <ApprovalProcessProvider>
+        <MainLayout user={user}>{children}</MainLayout>
+      </ApprovalProcessProvider>
+    </DocumentProvider>
+  );
 }

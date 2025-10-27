@@ -1,5 +1,5 @@
 import { getToken } from "@/lib/auth-server";
-import { apiClient } from "@/lib/api-client";
+import { apiServer } from "@/lib/api-server";
 import DocumentDetailClient from "./document-detail-client";
 import { notFound } from "next/navigation";
 
@@ -15,7 +15,7 @@ export default async function DocumentDetailPage({
   }
 
   try {
-    const document = await apiClient.getDocument(token, params.id);
+    const document = await apiServer.getDocumentById(token, params.id);
 
     return <DocumentDetailClient document={document} token={token} />;
   } catch (error) {

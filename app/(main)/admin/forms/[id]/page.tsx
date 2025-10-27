@@ -1,7 +1,8 @@
 import { getToken } from "@/lib/auth-server";
-import { apiClient } from "@/lib/api-client";
+import { apiServer } from "@/lib/api-server";
 import { redirect } from "next/navigation";
 import FormDetailClient from "./form-detail-client";
+import type { FormVersionDetail } from "@/types/approval-flow";
 
 export default async function FormDetailPage({
   params,
@@ -15,23 +16,23 @@ export default async function FormDetailPage({
   }
 
   try {
-    const form = await apiClient.getForm(token, params.id);
+    const form = await apiServer.getFormById(token, params.id);
 
     // 현재 버전 정보도 가져오기
-    let currentVersion = null;
+    let currentVersion: FormVersionDetail | null = null;
     if (form.currentVersionId) {
-      currentVersion = await apiClient.getFormVersion(
+      const version = await apiServer.getFormVersion(
         token,
         params.id,
         form.currentVersionId
       );
+      currentVersion = version as FormVersionDetail;
     }
 
     return (
       <FormDetailClient
         form={form}
         currentVersion={currentVersion}
-        token={token}
       />
     );
   } catch (error) {

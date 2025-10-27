@@ -4,20 +4,13 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient } from "@/lib/api-client";
-import SubmitDocumentModal from "@/components/document/submit-document-modal";
-import ApprovalLineDisplay from "@/components/document/approval-line-display";
-import type { Document, EmployeeDetail, ApprovalStep } from "@/types/api";
-
-interface ApprovalStepPreview {
-  stepOrder: number;
-  stepType: string;
-  isRequired: boolean;
-  employeeId: string;
-  employeeName: string;
-  departmentName?: string;
-  positionTitle?: string;
-  assigneeRule: string;
-}
+import type { Document } from "@/types/document";
+import type { StepSnapshot } from "@/types/approval-process";
+import type { PreviewStepInfo } from "@/types/approval-flow";
+import DocumentInfoSection from "./sections/document-info-section";
+import DocumentContentSection from "./sections/document-content-section";
+import SubmittedApprovalPanel from "./components/submitted-approval-panel";
+import EditableApprovalPanel from "./components/editable-approval-panel";
 
 interface DocumentDetailClientProps {
   document: Document;
@@ -31,32 +24,30 @@ export default function DocumentDetailClient({
   const router = useRouter();
   const [cancelReason, setCancelReason] = useState("");
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   // 결재선 미리보기 (DRAFT 상태일 때)
   const [approvalLinePreview, setApprovalLinePreview] = useState<{
     templateName: string;
-    steps: ApprovalStepPreview[];
+    steps: PreviewStepInfo[];
   } | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
 
-  // 실제 결재 단계 데이터 (PENDING/APPROVED/REJECTED 상태일 때)
-  const [approvalSteps, setApprovalSteps] = useState<ApprovalStep[]>([]);
+  // 수정된 결재선 정보
+  const [customApprovalSteps, setCustomApprovalSteps] = useState<
+    Array<{
+      stepOrder: number;
+      stepType: string;
+      isRequired: boolean;
+      employeeId?: string;
+      departmentId?: string;
+      assigneeRule: string;
+    }>
+  >([]);
 
-  // 결재선 수정 관련 상태
-  const [isEditingApprovalLine, setIsEditingApprovalLine] = useState(false);
-  const [editableSteps, setEditableSteps] = useState<ApprovalStepPreview[]>([]);
-  const [selectedStepIndex, setSelectedStepIndex] = useState<number | null>(
-    null
-  );
-  const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
-  const [isMultiSelectModalOpen, setIsMultiSelectModalOpen] = useState(false);
-  const [selectedStepType, setSelectedStepType] = useState<string>("");
-  const [selectedEmployees, setSelectedEmployees] = useState<EmployeeDetail[]>(
-    []
-  );
+  // 실제 결재 단계 데이터 (PENDING/APPROVED/REJECTED 상태일 때)
+  const [approvalSteps, setApprovalSteps] = useState<StepSnapshot[]>([]);
 
   // 문서 상태에 따라 결재선 데이터 로드
   useEffect(() => {
@@ -85,11 +76,8 @@ export default function DocumentDetailClient({
       } else {
         // PENDING/APPROVED/REJECTED 상태: 실제 결재 단계 데이터 로드
         try {
-          const steps = await apiClient.getDocumentApprovalSteps(
-            token,
-            document.id
-          );
-          setApprovalSteps(steps);
+          const response = await apiClient.getDocumentSteps(token, document.id);
+          setApprovalSteps(response.steps);
         } catch (err) {
           console.error("결재 단계 데이터 로드 실패:", err);
         }
@@ -105,301 +93,6 @@ export default function DocumentDetailClient({
     token,
   ]);
 
-  // 결재선 수정 관련 함수들
-  const handleEditApprovalLine = () => {
-    if (approvalLinePreview) {
-      setEditableSteps([...approvalLinePreview.steps]);
-      setIsEditingApprovalLine(true);
-    }
-  };
-
-  const handleCancelEdit = () => {
-    if (approvalLinePreview) {
-      setEditableSteps([...approvalLinePreview.steps]);
-    }
-    setIsEditingApprovalLine(false);
-  };
-
-  const handleSaveApprovalLine = () => {
-    setApprovalLinePreview((prev) =>
-      prev
-        ? {
-            ...prev,
-            steps: editableSteps,
-          }
-        : null
-    );
-    setIsEditingApprovalLine(false);
-  };
-
-  const handleEmployeeSelect = (employee: EmployeeDetail) => {
-    if (selectedStepIndex !== null) {
-      const updatedSteps = [...editableSteps];
-      const departmentName =
-        employee.departments?.[0]?.department?.departmentName || "";
-      const positionTitle =
-        employee.departments?.[0]?.position?.positionTitle || "";
-
-      updatedSteps[selectedStepIndex] = {
-        ...updatedSteps[selectedStepIndex],
-        employeeId: employee.id,
-        employeeName: employee.name,
-        departmentName,
-        positionTitle,
-      };
-      setEditableSteps(updatedSteps);
-    }
-    setIsEmployeeModalOpen(false);
-    setSelectedStepIndex(null);
-  };
-
-  const handleStepClick = (
-    step: ApprovalStepPreview | null,
-    stepType: string,
-    stepIndex: number
-  ) => {
-    if (isEditingApprovalLine) {
-      if (step) {
-        // 기존 단계 수정
-        setSelectedStepIndex(stepIndex);
-        setIsEmployeeModalOpen(true);
-      } else {
-        // 새 단계 추가 - UI 순서에 맞는 stepOrder 계산
-        const newStepOrder = calculateNextStepOrder(stepType);
-
-        const newStep: ApprovalStepPreview = {
-          stepOrder: newStepOrder,
-          stepType: stepType as
-            | "CONSULTATION"
-            | "APPROVAL"
-            | "IMPLEMENTATION"
-            | "REFERENCE",
-          assigneeRule: "FIXED",
-          employeeId: "",
-          employeeName: "",
-          departmentName: "",
-          positionTitle: "",
-          isRequired: true,
-        };
-        setEditableSteps([...editableSteps, newStep]);
-        setSelectedStepIndex(editableSteps.length);
-        setIsEmployeeModalOpen(true);
-      }
-    }
-  };
-
-  const handleDeleteStepClick = (step: ApprovalStepPreview) => {
-    if (confirm("이 결재 단계를 삭제하시겠습니까?")) {
-      const stepIndex = editableSteps.findIndex(
-        (s) => s.stepType === step.stepType && s.stepOrder === step.stepOrder
-      );
-      if (stepIndex !== -1) {
-        // 직접 삭제 로직 실행
-        const stepToDelete = editableSteps[stepIndex];
-        const updatedSteps = editableSteps.filter(
-          (_, index) => index !== stepIndex
-        );
-
-        // 해당 타입의 단계들만 재정렬
-        const reorderedSteps = updatedSteps.map((step) => {
-          if (step.stepType === stepToDelete.stepType) {
-            // 같은 타입의 단계들만 stepOrder 재정렬
-            const sameTypeSteps = updatedSteps
-              .filter((s) => s.stepType === step.stepType)
-              .sort((a, b) => a.stepOrder - b.stepOrder);
-            const newOrder = sameTypeSteps.indexOf(step) + 1;
-            return { ...step, stepOrder: newOrder };
-          }
-          return step;
-        });
-
-        setEditableSteps(reorderedSteps);
-      }
-    }
-  };
-
-  // 시행자/참조자 다중 선택 핸들러
-  const handleMultiSelectClick = (stepType: string) => {
-    if (isEditingApprovalLine) {
-      setSelectedStepType(stepType);
-
-      // 기존에 선택된 직원들을 가져와서 모달에 전달
-      const existingSteps = editableSteps.filter(
-        (s) => s.stepType === stepType
-      );
-
-      // 임시 EmployeeDetail 객체 생성 (모달에서 실제 데이터로 교체됨)
-      const existingEmployees: EmployeeDetail[] = existingSteps.map((step) => ({
-        id: step.employeeId,
-        name: step.employeeName,
-        employeeNumber: "",
-        email: "",
-        departments: [],
-      }));
-
-      setSelectedEmployees(existingEmployees);
-      setIsMultiSelectModalOpen(true);
-    }
-  };
-
-  // 다중 선택 완료 핸들러
-  const handleMultiSelectComplete = (employees: EmployeeDetail[]) => {
-    // 기존 시행자/참조자 제거
-    const filteredSteps = editableSteps.filter(
-      (s) => s.stepType !== selectedStepType
-    );
-
-    // UI 순서에 맞는 stepOrder 계산
-    const baseStepOrder = calculateNextStepOrder(selectedStepType);
-
-    // 새로운 시행자/참조자 추가 - UI 순서에 맞는 stepOrder로 설정
-    const newSteps = employees.map((employee, index) => {
-      const departmentName =
-        employee.departments?.[0]?.department?.departmentName || "";
-      const positionTitle =
-        employee.departments?.[0]?.position?.positionTitle || "";
-
-      return {
-        stepOrder: baseStepOrder + index,
-        stepType: selectedStepType,
-        assigneeRule: "FIXED",
-        employeeId: employee.id,
-        employeeName: employee.name,
-        departmentName,
-        positionTitle,
-        isRequired: false,
-      } as ApprovalStepPreview;
-    });
-
-    setEditableSteps([...filteredSteps, ...newSteps]);
-    setIsMultiSelectModalOpen(false);
-    setSelectedEmployees([]);
-  };
-
-  // 개별 시행자/참조자 삭제 핸들러
-  const handleRemoveEmployee = (stepType: string, employeeId: string) => {
-    const updatedSteps = editableSteps.filter(
-      (step) => !(step.stepType === stepType && step.employeeId === employeeId)
-    );
-    setEditableSteps(updatedSteps);
-  };
-
-  // UI 순서에 맞는 다음 stepOrder 계산
-  const calculateNextStepOrder = (stepType: string): number => {
-    // UI에서 표시되는 순서: 협의 -> 결재 -> 시행 -> 참조
-    const stepTypeOrder = [
-      "CONSULTATION",
-      "AGREEMENT",
-      "APPROVAL",
-      "IMPLEMENTATION",
-      "REFERENCE",
-    ];
-
-    // CONSULTATION을 AGREEMENT로 변환
-    const normalizedType = stepType === "CONSULTATION" ? "AGREEMENT" : stepType;
-
-    // 현재 타입의 순서 찾기
-    const currentTypeIndex = stepTypeOrder.indexOf(normalizedType);
-
-    // 현재 타입 이전의 모든 타입들의 단계 수 계산
-    let previousStepsCount = 0;
-    for (let i = 0; i < currentTypeIndex; i++) {
-      const type = stepTypeOrder[i];
-      const typeSteps = editableSteps.filter(
-        (s) =>
-          (s.stepType === "CONSULTATION" ? "AGREEMENT" : s.stepType) === type
-      );
-      previousStepsCount += typeSteps.length;
-    }
-
-    // 현재 타입의 기존 단계 수
-    const currentTypeSteps = editableSteps.filter(
-      (s) =>
-        (s.stepType === "CONSULTATION" ? "AGREEMENT" : s.stepType) ===
-        normalizedType
-    );
-
-    // 다음 stepOrder = 이전 타입들의 단계 수 + 현재 타입의 단계 수 + 1
-    return previousStepsCount + currentTypeSteps.length + 1;
-  };
-
-  // UI 순서대로 stepOrder 재조정 함수
-  const reorderStepsByUI = (
-    steps: ApprovalStepPreview[]
-  ): ApprovalStepPreview[] => {
-    // UI에서 표시되는 순서: 협의 -> 결재 -> 시행 -> 참조
-    const stepTypeOrder = [
-      "CONSULTATION",
-      "AGREEMENT",
-      "APPROVAL",
-      "IMPLEMENTATION",
-      "REFERENCE",
-    ];
-
-    // 각 타입별로 그룹화하고 정렬
-    const groupedSteps: { [key: string]: ApprovalStepPreview[] } = {};
-    steps.forEach((step) => {
-      const type =
-        step.stepType === "CONSULTATION" ? "AGREEMENT" : step.stepType;
-      if (!groupedSteps[type]) {
-        groupedSteps[type] = [];
-      }
-      groupedSteps[type].push(step);
-    });
-
-    // 각 타입별로 stepOrder로 정렬
-    Object.keys(groupedSteps).forEach((type) => {
-      groupedSteps[type].sort((a, b) => a.stepOrder - b.stepOrder);
-    });
-
-    // UI 순서대로 재배열하고 stepOrder 재할당
-    const reorderedSteps: ApprovalStepPreview[] = [];
-    let currentStepOrder = 1;
-
-    stepTypeOrder.forEach((type) => {
-      if (groupedSteps[type]) {
-        groupedSteps[type].forEach((step) => {
-          reorderedSteps.push({
-            ...step,
-            stepOrder: currentStepOrder++,
-          });
-        });
-      }
-    });
-
-    return reorderedSteps;
-  };
-
-  const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; className: string }> = {
-      DRAFT: { label: "임시저장", className: "bg-gray-100 text-gray-800" },
-      PENDING: {
-        label: "결재대기",
-        className: "bg-yellow-100 text-yellow-800",
-      },
-      APPROVED: { label: "승인완료", className: "bg-green-100 text-green-800" },
-      REJECTED: { label: "반려", className: "bg-red-100 text-red-800" },
-      CANCELLED: { label: "취소", className: "bg-gray-100 text-gray-800" },
-      IMPLEMENTED: {
-        label: "시행완료",
-        className: "bg-blue-100 text-blue-800",
-      },
-    };
-
-    const badge = statusMap[status] || {
-      label: status,
-      className: "bg-gray-100 text-gray-800",
-    };
-
-    return (
-      <span
-        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badge.className}`}
-      >
-        {badge.label}
-      </span>
-    );
-  };
-
   const handleCancelApproval = async () => {
     if (!cancelReason.trim()) {
       setError("취소 사유를 입력해주세요.");
@@ -410,9 +103,17 @@ export default function DocumentDetailClient({
     setError("");
 
     try {
-      await apiClient.cancelApproval(token, {
-        documentId: document.id,
-        reason: cancelReason,
+      // TODO: API 클라이언트에 cancelApproval 메서드 추가 필요
+      await fetch(`/api/approval-process/cancel`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          documentId: document.id,
+          reason: cancelReason,
+        }),
       });
 
       setShowCancelModal(false);
@@ -440,32 +141,19 @@ export default function DocumentDetailClient({
     }
   };
 
-  const handleSubmit = async (customApprovalSteps?: ApprovalStepPreview[]) => {
+  const handleSubmit = async () => {
     setLoading(true);
     try {
-      if (customApprovalSteps) {
-        // UI 순서대로 stepOrder 재조정
-        const reorderedSteps = reorderStepsByUI(customApprovalSteps);
-
-        // CONSULTATION을 AGREEMENT로 변환
-        const convertedSteps = reorderedSteps.map((step) => ({
-          ...step,
-          stepType:
-            step.stepType === "CONSULTATION" ? "AGREEMENT" : step.stepType,
-        }));
-
-        await apiClient.submitDocument(token, document.id, {
-          draftContext: {}, // 모든 필드가 optional이므로 빈 객체 전달
-          customApprovalSteps: convertedSteps, // 수정된 결재선 전달
-        });
-      } else {
-        await apiClient.submitDocument(token, document.id, {
-          draftContext: {}, // 모든 필드가 optional이므로 빈 객체 전달
-        });
-      }
+      await apiClient.submitDocument(token, document.id, {
+        draftContext: {},
+        customApprovalSteps:
+          customApprovalSteps.length > 0 ? customApprovalSteps : undefined,
+      });
       router.refresh();
     } catch (err: unknown) {
-      throw err;
+      setError(
+        err instanceof Error ? err.message : "문서 제출에 실패했습니다."
+      );
     } finally {
       setLoading(false);
     }
@@ -480,7 +168,33 @@ export default function DocumentDetailClient({
             <h1 className="text-2xl font-bold text-gray-900">
               {document.title}
             </h1>
-            {getStatusBadge(document.status)}
+            <span
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${(() => {
+                const statusMap: Record<string, string> = {
+                  DRAFT: "bg-gray-100 text-gray-800",
+                  PENDING: "bg-yellow-100 text-yellow-800",
+                  APPROVED: "bg-green-100 text-green-800",
+                  REJECTED: "bg-red-100 text-red-800",
+                  CANCELLED: "bg-gray-100 text-gray-800",
+                  IMPLEMENTED: "bg-blue-100 text-blue-800",
+                };
+                return (
+                  statusMap[document.status] || "bg-gray-100 text-gray-800"
+                );
+              })()}`}
+            >
+              {(() => {
+                const statusLabels: Record<string, string> = {
+                  DRAFT: "임시저장",
+                  PENDING: "결재대기",
+                  APPROVED: "승인완료",
+                  REJECTED: "반려",
+                  CANCELLED: "취소",
+                  IMPLEMENTED: "시행완료",
+                };
+                return statusLabels[document.status] || document.status;
+              })()}
+            </span>
           </div>
           <p className="mt-2 text-sm text-gray-500">
             문서번호: {document.documentNumber || "-"} | 작성일:{" "}
@@ -491,35 +205,7 @@ export default function DocumentDetailClient({
           {document.status === "DRAFT" && (
             <>
               <button
-                onClick={async () => {
-                  // 현재 표시된 결재선을 기반으로 customApprovalSteps 생성
-                  const currentSteps = isEditingApprovalLine
-                    ? editableSteps
-                    : approvalLinePreview?.steps || [];
-                  const customApprovalSteps =
-                    currentSteps.length > 0
-                      ? currentSteps.map((step) => ({
-                          stepOrder: step.stepOrder,
-                          stepType: step.stepType,
-                          isRequired: step.isRequired,
-                          employeeId: step.employeeId,
-                          assigneeRule: step.assigneeRule,
-                          employeeName: step.employeeName,
-                          departmentName: step.departmentName,
-                          positionTitle: step.positionTitle,
-                        }))
-                      : undefined;
-
-                  console.log("제출 시 결재선 정보:", {
-                    isEditingApprovalLine,
-                    currentStepsLength: currentSteps.length,
-                    customApprovalSteps,
-                    editableStepsLength: editableSteps.length,
-                    previewStepsLength: approvalLinePreview?.steps.length || 0,
-                  });
-
-                  await handleSubmit(customApprovalSteps);
-                }}
+                onClick={handleSubmit}
                 disabled={loading}
                 className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -552,50 +238,26 @@ export default function DocumentDetailClient({
         </div>
       </div>
 
-      {/* Document Info */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">문서 정보</h2>
-        <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <dt className="text-sm font-medium text-gray-500">양식 버전 ID</dt>
-            <dd className="mt-1 text-sm text-gray-900">
-              {document.formVersionId}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-sm font-medium text-gray-500">상태</dt>
-            <dd className="mt-1">{getStatusBadge(document.status)}</dd>
-          </div>
-          {document.submittedAt && (
-            <div>
-              <dt className="text-sm font-medium text-gray-500">제출일</dt>
-              <dd className="mt-1 text-sm text-gray-900">
-                {new Date(document.submittedAt).toLocaleString()}
-              </dd>
-            </div>
-          )}
-          {document.cancelReason && (
-            <div className="sm:col-span-2">
-              <dt className="text-sm font-medium text-gray-500">취소 사유</dt>
-              <dd className="mt-1 text-sm text-gray-900">
-                {document.cancelReason}
-              </dd>
-            </div>
-          )}
-        </dl>
-      </div>
+      {/* Document Info Section */}
+      <DocumentInfoSection document={document} />
 
-      {/* Document Content */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">문서 내용</h2>
-        <div
-          className="prose max-w-none"
-          dangerouslySetInnerHTML={{ __html: document.content }}
+      {/* Document Content Section */}
+      {document.content && (
+        <DocumentContentSection content={document.content} />
+      )}
+
+      {/* Approval Steps - DRAFT 상태 (수정 가능) */}
+      {document.status === "DRAFT" && !loadingPreview && (
+        <EditableApprovalPanel
+          templateName={approvalLinePreview?.templateName || ""}
+          initialSteps={approvalLinePreview?.steps || []}
+          loading={loadingPreview}
+          onApprovalStepsChange={setCustomApprovalSteps}
         />
-      </div>
+      )}
 
-      {/* Approval Steps - Enhanced Timeline */}
-      {document.status === "DRAFT" && loadingPreview ? (
+      {/* Approval Steps - DRAFT 로딩 중 */}
+      {document.status === "DRAFT" && loadingPreview && (
         <div className="bg-white shadow rounded-lg p-6">
           <div className="flex items-center justify-center py-12">
             <svg
@@ -620,37 +282,12 @@ export default function DocumentDetailClient({
             </svg>
           </div>
         </div>
-      ) : (
-        <ApprovalLineDisplay
-          documentStatus={document.status}
-          isEditingApprovalLine={isEditingApprovalLine}
-          editableSteps={editableSteps}
-          approvalLinePreview={approvalLinePreview}
-          approvalSteps={approvalSteps}
-          onEditApprovalLine={handleEditApprovalLine}
-          onSaveApprovalLine={handleSaveApprovalLine}
-          onCancelEdit={handleCancelEdit}
-          onStepClick={handleStepClick}
-          onDeleteStepClick={handleDeleteStepClick}
-          onMultiSelectClick={handleMultiSelectClick}
-          onRemoveEmployee={handleRemoveEmployee}
-          onMultiSelectComplete={handleMultiSelectComplete}
-          isEmployeeModalOpen={isEmployeeModalOpen}
-          isMultiSelectModalOpen={isMultiSelectModalOpen}
-          selectedStepIndex={selectedStepIndex}
-          selectedStepType={selectedStepType}
-          selectedEmployees={selectedEmployees}
-          onCloseEmployeeModal={() => {
-            setIsEmployeeModalOpen(false);
-            setSelectedStepIndex(null);
-          }}
-          onCloseMultiSelectModal={() => {
-            setIsMultiSelectModalOpen(false);
-            setSelectedEmployees([]);
-          }}
-          onEmployeeSelect={handleEmployeeSelect}
-        />
       )}
+
+      {/* Approval Steps - 제출 후 상태 */}
+      {document.status !== "DRAFT" &&
+        approvalSteps.length > 0 &&
+        !loadingPreview && <SubmittedApprovalPanel steps={approvalSteps} />}
 
       {/* Cancel Modal */}
       {showCancelModal && (
@@ -708,13 +345,6 @@ export default function DocumentDetailClient({
           </div>
         </div>
       )}
-
-      {/* Submit Modal */}
-      <SubmitDocumentModal
-        isOpen={showSubmitModal}
-        onClose={() => setShowSubmitModal(false)}
-        onSubmit={handleSubmit}
-      />
     </div>
   );
 }

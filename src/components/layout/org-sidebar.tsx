@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { apiClient } from "@/lib/api-client";
 import { clientAuth } from "@/lib/auth-client";
 import { quickLoginAction } from "@/actions/auth-actions";
-import type { DepartmentHierarchy, DepartmentEmployee } from "@/types/api";
+import type { DepartmentWithEmployees } from "@/types";
 
 interface OrgSidebarProps {
   isOpen: boolean;
@@ -12,7 +12,7 @@ interface OrgSidebarProps {
 }
 
 export default function OrgSidebar({ isOpen, onClose }: OrgSidebarProps) {
-  const [departments, setDepartments] = useState<DepartmentHierarchy[]>([]);
+  const [departments, setDepartments] = useState<DepartmentWithEmployees[]>([]);
   const [expandedDepts, setExpandedDepts] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +41,7 @@ export default function OrgSidebar({ isOpen, onClose }: OrgSidebarProps) {
 
       // 모든 부서를 자동으로 펼치기
       const allDeptIds = new Set<string>();
-      const collectDeptIds = (depts: DepartmentHierarchy[]) => {
+      const collectDeptIds = (depts: DepartmentWithEmployees[]) => {
         depts.forEach((dept) => {
           allDeptIds.add(dept.id);
           if (dept.children && dept.children.length > 0) {
@@ -72,7 +72,9 @@ export default function OrgSidebar({ isOpen, onClose }: OrgSidebarProps) {
     setExpandedDepts(newExpanded);
   };
 
-  const handleEmployeeClick = async (employee: DepartmentEmployee) => {
+  const handleEmployeeClick = async (
+    employee: DepartmentWithEmployees["employees"][number]
+  ) => {
     try {
       setLoading(true);
 
@@ -103,7 +105,10 @@ export default function OrgSidebar({ isOpen, onClose }: OrgSidebarProps) {
     }
   };
 
-  const renderDepartment = (dept: DepartmentHierarchy, level: number = 0) => {
+  const renderDepartment = (
+    dept: DepartmentWithEmployees,
+    level: number = 0
+  ) => {
     const isExpanded = expandedDepts.has(dept.id);
     const hasChildren = dept.children && dept.children.length > 0;
     const hasEmployees = dept.employees && dept.employees.length > 0;
@@ -131,30 +136,34 @@ export default function OrgSidebar({ isOpen, onClose }: OrgSidebarProps) {
         {/* 직원 목록 */}
         {isExpanded && hasEmployees && (
           <div className="ml-4">
-            {dept.employees.map((employee) => (
-              <div
-                key={employee.id}
-                className="flex items-center py-1.5 px-2 hover:bg-blue-50 cursor-pointer text-sm rounded"
-                onClick={() => handleEmployeeClick(employee)}
-              >
-                <span className="mr-2">👤</span>
-                <div className="flex-1">
-                  <div className="font-medium text-gray-800">
-                    {employee.name}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {employee.positionTitle} · {employee.employeeNumber}
+            {dept.employees.map(
+              (employee: DepartmentWithEmployees["employees"][number]) => (
+                <div
+                  key={employee.id}
+                  className="flex items-center py-1.5 px-2 hover:bg-blue-50 cursor-pointer text-sm rounded"
+                  onClick={() => handleEmployeeClick(employee)}
+                >
+                  <span className="mr-2">👤</span>
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-800">
+                      {employee.name}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {employee.positionTitle} · {employee.employeeNumber}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            )}
           </div>
         )}
 
         {/* 하위 부서 */}
         {isExpanded && hasChildren && (
           <div>
-            {dept.children.map((child) => renderDepartment(child, level + 1))}
+            {dept.children.map((child: DepartmentWithEmployees) =>
+              renderDepartment(child, level + 1)
+            )}
           </div>
         )}
       </div>

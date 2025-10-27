@@ -1,5 +1,5 @@
 import { getToken } from "@/lib/auth-server";
-import { apiClient } from "@/lib/api-client";
+import { apiServer } from "@/lib/api-server";
 import { redirect } from "next/navigation";
 import NewVersionClient from "./new-version-client";
 
@@ -15,13 +15,13 @@ export default async function NewVersionPage({
   }
 
   try {
-    const template = await apiClient.getApprovalLineTemplate(token, params.id);
+    const template = await apiServer.getApprovalLineTemplate(token, params.id);
 
     // 현재 버전의 정보도 가져오기
     let currentVersion = null;
     if (template.currentVersionId) {
       try {
-        currentVersion = await apiClient.getApprovalLineTemplateVersion(
+        currentVersion = await apiServer.getApprovalLineTemplateVersion(
           token,
           params.id,
           template.currentVersionId
@@ -32,11 +32,7 @@ export default async function NewVersionPage({
     }
 
     return (
-      <NewVersionClient
-        template={template}
-        currentVersion={currentVersion}
-        token={token}
-      />
+      <NewVersionClient template={template} currentVersion={currentVersion} />
     );
   } catch (error) {
     console.error("Error fetching template:", error);

@@ -3,120 +3,528 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
+import { clientAuth } from "@/lib/auth-client";
+import type { Employee } from "@/types/metadata";
 import type {
   ApprovalLineTemplate,
-  ApprovalLineTemplateVersion,
-} from "@/types/api";
+  TemplateVersionDetail,
+  ApprovalStepTemplate,
+  AssigneeRule,
+} from "@/types/approval-flow";
+import ApprovalStepsSection, {
+  type StepSlot,
+  type MultiStep,
+} from "../../../new/sections/approval-steps-section";
+import VersionInfoPanel from "./components/version-info-panel";
+import EmployeePickerModal from "../../../new/components/employee-picker-modal";
+import DepartmentSelectorModal from "../../../new/components/department-selector-modal";
 
 interface NewVersionClientProps {
   template: ApprovalLineTemplate;
-  currentVersion: ApprovalLineTemplateVersion | null;
-  token: string;
-}
-
-interface Step {
-  stepOrder: number;
-  stepType: string;
-  assigneeRule: string;
-  targetDepartmentId?: string;
-  targetPositionId?: string;
-  targetEmployeeId?: string;
-  isRequired: boolean;
+  currentVersion: TemplateVersionDetail | null;
 }
 
 export default function NewVersionClient({
   template,
   currentVersion,
-  token,
 }: NewVersionClientProps) {
   const router = useRouter();
+
+  // 합의/결재는 각각 5칸 고정
+  const [agreementSlots, setAgreementSlots] = useState<StepSlot[]>(
+    Array.from({ length: 5 }, (_, i) => ({
+      id: `agreement-${i}`,
+      assigneeRule: "DRAFTER",
+      isRequired: false,
+      isEmpty: true,
+      needsSelection: false,
+    }))
+  );
+
+  const [approvalSlots, setApprovalSlots] = useState<StepSlot[]>(
+    Array.from({ length: 5 }, (_, i) => ({
+      id: `approval-${i}`,
+      assigneeRule: "DRAFTER",
+      isRequired: false,
+      isEmpty: true,
+      needsSelection: false,
+    }))
+  );
+
+  // 시행/참조는 동적으로 추가
+  const [implementationSteps, setImplementationSteps] = useState<MultiStep[]>(
+    []
+  );
+  const [referenceSteps, setReferenceSteps] = useState<MultiStep[]>([]);
+
   const [versionNote, setVersionNote] = useState("");
-  const [steps, setSteps] = useState<Step[]>([
-    {
-      stepOrder: 1,
-      stepType: "APPROVAL",
-      assigneeRule: "DRAFTER_SUPERIOR",
-      isRequired: true,
-    },
-  ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showEmployeeModal, setShowEmployeeModal] = useState(false);
+  const [showDepartmentModal, setShowDepartmentModal] = useState(false);
+  const [currentArea, setCurrentArea] = useState<
+    "agreement" | "approval" | "implementation" | "reference"
+  >("agreement");
+  const [currentIndex, setCurrentIndex] = useState<number | null>(null);
 
   // 기존 버전의 단계 정보를 초기값으로 설정
   useEffect(() => {
     if (currentVersion && currentVersion.steps) {
-      const initialSteps = currentVersion.steps.map((step) => ({
-        stepOrder: step.stepOrder,
-        stepType: step.stepType,
-        assigneeRule: step.assigneeRule,
-        targetDepartmentId: step.targetDepartmentId,
-        targetPositionId: step.targetPositionId,
-        targetEmployeeId: step.defaultApproverId,
-        isRequired: step.required,
-      }));
-      setSteps(initialSteps);
+      // 합의 단계 초기화 (5칸)
+      const agreementSteps = currentVersion.steps.filter(
+        (s) => s.stepType === "AGREEMENT"
+      );
+      const initialAgreementSlots: StepSlot[] = Array.from(
+        { length: 5 },
+        (_, i) => {
+          const step = agreementSteps[i];
+          if (step) {
+            return {
+              id: `agreement-${i}`,
+              assigneeRule: step.assigneeRule,
+              isRequired: step.isRequired || false,
+              isEmpty: false,
+              needsSelection: false,
+              targetEmployeeId: step.targetEmployeeId,
+              selectedEmployee: step.defaultApprover
+                ? {
+                    id: step.defaultApprover.id,
+                    employeeNumber: step.defaultApprover.employeeNumber,
+                    name: step.defaultApprover.name,
+                    email: step.defaultApprover.email,
+                    phoneNumber: step.defaultApprover.phoneNumber || "",
+                    status: "Active" as const,
+                    hireDate: new Date().toISOString(),
+                    departments: [],
+                  }
+                : undefined,
+            };
+          } else {
+            return {
+              id: `agreement-${i}`,
+              assigneeRule: "DRAFTER" as AssigneeRule,
+              isRequired: false,
+              isEmpty: true,
+              needsSelection: false,
+            };
+          }
+        }
+      );
+      setAgreementSlots(initialAgreementSlots);
+
+      // 결재 단계 초기화 (5칸)
+      const approvalSteps = currentVersion.steps.filter(
+        (s) => s.stepType === "APPROVAL"
+      );
+      const initialApprovalSlots: StepSlot[] = Array.from(
+        { length: 5 },
+        (_, i) => {
+          const step = approvalSteps[i];
+          if (step) {
+            return {
+              id: `approval-${i}`,
+              assigneeRule: step.assigneeRule,
+              isRequired: step.isRequired || false,
+              isEmpty: false,
+              needsSelection: false,
+              targetEmployeeId: step.targetEmployeeId,
+              selectedEmployee: step.defaultApprover
+                ? {
+                    id: step.defaultApprover.id,
+                    employeeNumber: step.defaultApprover.employeeNumber,
+                    name: step.defaultApprover.name,
+                    email: step.defaultApprover.email,
+                    phoneNumber: step.defaultApprover.phoneNumber || "",
+                    status: "Active" as const,
+                    hireDate: new Date().toISOString(),
+                    departments: [],
+                  }
+                : undefined,
+            };
+          } else {
+            return {
+              id: `approval-${i}`,
+              assigneeRule: "DRAFTER" as AssigneeRule,
+              isRequired: false,
+              isEmpty: true,
+              needsSelection: false,
+            };
+          }
+        }
+      );
+      setApprovalSlots(initialApprovalSlots);
+
+      // 시행 단계 초기화
+      const implementationStepsData = currentVersion.steps
+        .filter((s) => s.stepType === "IMPLEMENTATION")
+        .map((step) => ({
+          id: step.id || `implementation-${Date.now()}-${Math.random()}`,
+          stepType: "IMPLEMENTATION" as const,
+          assigneeRule: step.assigneeRule,
+          isRequired: step.isRequired || false,
+          selectedEmployees: step.defaultApprover
+            ? [
+                {
+                  id: step.defaultApprover.id,
+                  employeeNumber: step.defaultApprover.employeeNumber,
+                  name: step.defaultApprover.name,
+                  email: step.defaultApprover.email,
+                  phoneNumber: step.defaultApprover.phoneNumber || "",
+                  status: "Active" as const,
+                  hireDate: new Date().toISOString(),
+                  departments: [],
+                },
+              ]
+            : [],
+        }));
+      setImplementationSteps(implementationStepsData);
+
+      // 참조 단계 초기화
+      const referenceStepsData = currentVersion.steps
+        .filter((s) => s.stepType === "REFERENCE")
+        .map((step) => ({
+          id: step.id || `reference-${Date.now()}-${Math.random()}`,
+          stepType: "REFERENCE" as const,
+          assigneeRule: step.assigneeRule,
+          isRequired: step.isRequired || false,
+          selectedEmployees: step.defaultApprover
+            ? [
+                {
+                  id: step.defaultApprover.id,
+                  employeeNumber: step.defaultApprover.employeeNumber,
+                  name: step.defaultApprover.name,
+                  email: step.defaultApprover.email,
+                  phoneNumber: step.defaultApprover.phoneNumber || "",
+                  status: "Active" as const,
+                  hireDate: new Date().toISOString(),
+                  departments: [],
+                },
+              ]
+            : [],
+          selectedDepartments: step.targetDepartment
+            ? [
+                {
+                  id: step.targetDepartment.id,
+                  name: step.targetDepartment.departmentName,
+                  code: step.targetDepartment.departmentCode,
+                },
+              ]
+            : [],
+        }));
+      setReferenceSteps(referenceStepsData);
     }
   }, [currentVersion]);
 
-  const stepTypes = [
-    { value: "AGREEMENT", label: "협의" },
-    { value: "APPROVAL", label: "결재" },
-    { value: "IMPLEMENTATION", label: "시행" },
-    { value: "REFERENCE", label: "참조" },
-  ];
-
-  const assigneeRules = [
-    { value: "FIXED", label: "고정 담당자" },
-    { value: "DRAFTER", label: "기안자" },
-    { value: "DRAFTER_SUPERIOR", label: "기안자 상급자" },
-  ];
-
-  const handleAddStep = () => {
-    const newStepOrder = steps.length + 1;
-    setSteps([
-      ...steps,
-      {
-        stepOrder: newStepOrder,
-        stepType: "APPROVAL",
-        assigneeRule: "DRAFTER_SUPERIOR",
-        isRequired: true,
-      },
-    ]);
-  };
-
-  const handleRemoveStep = (index: number) => {
-    const newSteps = steps.filter((_, i) => i !== index);
-    // 단계 순서 재정렬
-    newSteps.forEach((step, i) => {
-      step.stepOrder = i + 1;
-    });
-    setSteps(newSteps);
-  };
-
-  const handleStepChange = (
+  // new-approval-line-client.tsx에서 가져온 핸들러들
+  const handleUpdateAgreementSlot = (
     index: number,
-    field: keyof Step,
+    field: keyof StepSlot,
     value: unknown
   ) => {
-    const newSteps = [...steps];
-    newSteps[index] = { ...newSteps[index], [field]: value };
-    setSteps(newSteps);
+    const newSlots = [...agreementSlots];
+    if (field === "assigneeRule") {
+      newSlots[index].assigneeRule = value as StepSlot["assigneeRule"];
+      const assigneeRule = value as string;
+      newSlots[index].needsSelection = assigneeRule === "FIXED";
+      newSlots[index].isEmpty = false;
+    } else if (field === "isRequired") {
+      newSlots[index].isRequired = value as StepSlot["isRequired"];
+    } else if (field === "isEmpty") {
+      newSlots[index].isEmpty = value as StepSlot["isEmpty"];
+    } else if (field === "needsSelection") {
+      newSlots[index].needsSelection = value as StepSlot["needsSelection"];
+    }
+    setAgreementSlots(newSlots);
+  };
+
+  const handleUpdateApprovalSlot = (
+    index: number,
+    field: keyof StepSlot,
+    value: unknown
+  ) => {
+    const newSlots = [...approvalSlots];
+    if (field === "assigneeRule") {
+      newSlots[index].assigneeRule = value as StepSlot["assigneeRule"];
+      const assigneeRule = value as string;
+      newSlots[index].needsSelection = assigneeRule === "FIXED";
+      newSlots[index].isEmpty = false;
+    } else if (field === "isRequired") {
+      newSlots[index].isRequired = value as StepSlot["isRequired"];
+    } else if (field === "isEmpty") {
+      newSlots[index].isEmpty = value as StepSlot["isEmpty"];
+    } else if (field === "needsSelection") {
+      newSlots[index].needsSelection = value as StepSlot["needsSelection"];
+    }
+    setApprovalSlots(newSlots);
+  };
+
+  const handleRemoveAgreementSlot = (index: number) => {
+    const newSlots = [...agreementSlots];
+    newSlots[index] = {
+      id: `agreement-${index}`,
+      assigneeRule: "DRAFTER" as AssigneeRule,
+      isRequired: false,
+      isEmpty: true,
+      needsSelection: false,
+    };
+    const filledSlots: StepSlot[] = [];
+    for (let i = 0; i < newSlots.length; i++) {
+      if (!newSlots[i].isEmpty) {
+        filledSlots.push(newSlots[i]);
+      }
+    }
+    const sortedSlots: StepSlot[] = Array.from({ length: 5 }, (_, i) =>
+      i < filledSlots.length
+        ? filledSlots[i]
+        : {
+            id: `agreement-${i}`,
+            assigneeRule: "DRAFTER" as AssigneeRule,
+            isRequired: false,
+            isEmpty: true,
+            needsSelection: false,
+          }
+    );
+    setAgreementSlots(sortedSlots);
+  };
+
+  const handleRemoveApprovalSlot = (index: number) => {
+    const newSlots = [...approvalSlots];
+    newSlots[index] = {
+      id: `approval-${index}`,
+      assigneeRule: "DRAFTER" as AssigneeRule,
+      isRequired: false,
+      isEmpty: true,
+      needsSelection: false,
+    };
+    const filledSlots: StepSlot[] = [];
+    for (let i = 0; i < newSlots.length; i++) {
+      if (!newSlots[i].isEmpty) {
+        filledSlots.push(newSlots[i]);
+      }
+    }
+    const sortedSlots: StepSlot[] = Array.from({ length: 5 }, (_, i) =>
+      i < filledSlots.length
+        ? filledSlots[i]
+        : {
+            id: `approval-${i}`,
+            assigneeRule: "DRAFTER" as AssigneeRule,
+            isRequired: false,
+            isEmpty: true,
+            needsSelection: false,
+          }
+    );
+    setApprovalSlots(sortedSlots);
+  };
+
+  const handleAddImplementationStep = () => {
+    const newStep: MultiStep = {
+      id: `implementation-${Date.now()}`,
+      stepType: "IMPLEMENTATION",
+      assigneeRule: "FIXED",
+      isRequired: false,
+      selectedEmployees: [],
+    };
+    setImplementationSteps([...implementationSteps, newStep]);
+  };
+
+  const handleAddReferenceStep = () => {
+    const newStep: MultiStep = {
+      id: `reference-${Date.now()}`,
+      stepType: "REFERENCE",
+      assigneeRule: "FIXED",
+      isRequired: false,
+      selectedEmployees: [],
+      selectedDepartments: [],
+    };
+    setReferenceSteps([...referenceSteps, newStep]);
+  };
+
+  const handleRemoveImplementationStep = (index: number) => {
+    setImplementationSteps(implementationSteps.filter((_, i) => i !== index));
+  };
+
+  const handleRemoveReferenceStep = (index: number) => {
+    setReferenceSteps(referenceSteps.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateImplementationStep = (
+    index: number,
+    field: string,
+    value: unknown
+  ) => {
+    const newSteps = [...implementationSteps];
+    if (field === "assigneeRule") {
+      newSteps[index] = {
+        ...newSteps[index],
+        assigneeRule: value as AssigneeRule,
+        needsSelection: value === "FIXED",
+        selectedEmployees: [],
+      };
+    }
+    setImplementationSteps(newSteps);
+  };
+
+  const handleUpdateReferenceStep = (
+    index: number,
+    field: string,
+    value: unknown
+  ) => {
+    const newSteps = [...referenceSteps];
+    if (field === "assigneeRule") {
+      newSteps[index] = {
+        ...newSteps[index],
+        assigneeRule: value as AssigneeRule,
+        needsSelection: value === "FIXED" || value === "DEPARTMENT_REFERENCE",
+        selectedEmployees: [],
+        selectedDepartments: [],
+      };
+    }
+    setReferenceSteps(newSteps);
+  };
+
+  const handleOpenEmployeePicker = (
+    area: "agreement" | "approval" | "implementation" | "reference",
+    index: number
+  ) => {
+    setCurrentArea(area);
+    setCurrentIndex(index);
+    setShowEmployeeModal(true);
+  };
+
+  const handleOpenDepartmentSelector = (index: number) => {
+    setCurrentIndex(index);
+    setShowDepartmentModal(true);
+  };
+
+  const handleEmployeeSelect = (employee: Employee) => {
+    if (currentIndex === null) return;
+
+    if (currentArea === "agreement") {
+      const newSlots = [...agreementSlots];
+      newSlots[currentIndex].selectedEmployee = employee;
+      newSlots[currentIndex].targetEmployeeId = employee.id;
+      newSlots[currentIndex].isEmpty = false;
+      newSlots[currentIndex].needsSelection = false;
+      setAgreementSlots(newSlots);
+    } else if (currentArea === "approval") {
+      const newSlots = [...approvalSlots];
+      newSlots[currentIndex].selectedEmployee = employee;
+      newSlots[currentIndex].targetEmployeeId = employee.id;
+      newSlots[currentIndex].isEmpty = false;
+      newSlots[currentIndex].needsSelection = false;
+      setApprovalSlots(newSlots);
+    } else if (currentArea === "implementation") {
+      const newSteps = [...implementationSteps];
+      newSteps[currentIndex].selectedEmployees = [employee];
+      setImplementationSteps(newSteps);
+    } else if (currentArea === "reference") {
+      const newSteps = [...referenceSteps];
+      newSteps[currentIndex].selectedEmployees = [employee];
+      setReferenceSteps(newSteps);
+    }
+
+    setShowEmployeeModal(false);
+    setCurrentIndex(null);
+  };
+
+  const handleDepartmentSelect = (department: {
+    id: string;
+    name: string;
+    code: string;
+    employeeCount?: number;
+  }) => {
+    if (currentIndex === null) return;
+    const newSteps = [...referenceSteps];
+    newSteps[currentIndex].selectedDepartments = [department];
+    setReferenceSteps(newSteps);
+
+    setShowDepartmentModal(false);
+    setCurrentIndex(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    if (steps.length === 0) {
+    const hasAgreement = agreementSlots.some((slot) => !slot.isEmpty);
+    const hasApproval = approvalSlots.some((slot) => !slot.isEmpty);
+
+    if (!hasAgreement && !hasApproval && implementationSteps.length === 0) {
       setError("최소 1개 이상의 결재 단계가 필요합니다.");
       return;
     }
 
     setLoading(true);
     try {
+      const token = clientAuth.getToken();
+      if (!token) {
+        setError("인증 정보가 없습니다. 다시 로그인해주세요.");
+        return;
+      }
+
+      const stepsToSubmit: ApprovalStepTemplate[] = [];
+
+      // 합의 단계
+      agreementSlots.forEach((slot) => {
+        if (!slot.isEmpty) {
+          stepsToSubmit.push({
+            stepOrder: stepsToSubmit.length + 1,
+            stepType: "AGREEMENT",
+            assigneeRule: slot.assigneeRule,
+            targetEmployeeId: slot.targetEmployeeId,
+            isRequired: slot.isRequired,
+          });
+        }
+      });
+
+      // 결재 단계
+      approvalSlots.forEach((slot) => {
+        if (!slot.isEmpty) {
+          stepsToSubmit.push({
+            stepOrder: stepsToSubmit.length + 1,
+            stepType: "APPROVAL",
+            assigneeRule: slot.assigneeRule,
+            targetEmployeeId: slot.targetEmployeeId,
+            isRequired: slot.isRequired,
+          });
+        }
+      });
+
+      // 시행 단계
+      implementationSteps.forEach((step) => {
+        stepsToSubmit.push({
+          stepOrder: stepsToSubmit.length + 1,
+          stepType: "IMPLEMENTATION",
+          assigneeRule: step.assigneeRule,
+          targetEmployeeId:
+            step.selectedEmployees && step.selectedEmployees.length > 0
+              ? step.selectedEmployees[0].id
+              : undefined,
+          isRequired: step.isRequired,
+        });
+      });
+
+      // 참조 단계
+      referenceSteps.forEach((step) => {
+        stepsToSubmit.push({
+          stepOrder: stepsToSubmit.length + 1,
+          stepType: "REFERENCE",
+          assigneeRule: step.assigneeRule,
+          targetEmployeeId:
+            step.selectedEmployees && step.selectedEmployees.length > 0
+              ? step.selectedEmployees[0].id
+              : undefined,
+          targetDepartmentId:
+            step.selectedDepartments && step.selectedDepartments.length > 0
+              ? step.selectedDepartments[0].id
+              : undefined,
+          isRequired: step.isRequired,
+        });
+      });
+
       await apiClient.createApprovalLineTemplateVersion(token, template.id, {
-        versionNote,
-        steps,
+        versionNote: versionNote || undefined,
+        steps: stepsToSubmit,
       });
 
       router.push(`/admin/approval-lines/${template.id}`);
@@ -142,52 +550,7 @@ export default function NewVersionClient({
         </p>
       </div>
 
-      {/* 템플릿 정보 */}
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">템플릿 정보</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-gray-500">템플릿명:</span>
-            <span className="ml-2 font-medium text-gray-900">
-              {template.name}
-            </span>
-          </div>
-          <div>
-            <span className="text-gray-500">유형:</span>
-            <span className="ml-2 font-medium text-gray-900">
-              {template.type}
-            </span>
-          </div>
-          <div>
-            <span className="text-gray-500">조직 범위:</span>
-            <span className="ml-2 font-medium text-gray-900">
-              {template.orgScope}
-            </span>
-          </div>
-          <div>
-            <span className="text-gray-500">상태:</span>
-            <span className="ml-2 font-medium text-gray-900">
-              {template.status}
-            </span>
-          </div>
-          {currentVersion && (
-            <div>
-              <span className="text-gray-500">현재 버전:</span>
-              <span className="ml-2 font-medium text-gray-900">
-                v{currentVersion.versionNo}
-              </span>
-            </div>
-          )}
-        </div>
-        {currentVersion && currentVersion.steps && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <p className="text-xs text-gray-500 mb-2">
-              ℹ️ 아래 단계들은 현재 버전(v{currentVersion.versionNo})의 단계를
-              기반으로 초기화되었습니다. 필요에 따라 수정하세요.
-            </p>
-          </div>
-        )}
-      </div>
+      <VersionInfoPanel template={template} currentVersion={currentVersion} />
 
       <form
         onSubmit={handleSubmit}
@@ -207,132 +570,25 @@ export default function NewVersionClient({
           />
         </div>
 
-        <div>
-          <div className="flex justify-between items-center mb-3">
-            <label className="block text-sm font-medium text-gray-700">
-              결재 단계 *
-            </label>
-            <button
-              type="button"
-              onClick={handleAddStep}
-              disabled={loading}
-              className="px-3 py-1 text-sm border border-gray-300 rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              단계 추가
-            </button>
-          </div>
-
-          <div className="space-y-3">
-            {steps.map((step, index) => (
-              <div
-                key={index}
-                className="border border-gray-200 rounded-lg p-4 bg-gray-50"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-medium text-gray-700">
-                    단계 {step.stepOrder}
-                  </span>
-                  {steps.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveStep(index)}
-                      disabled={loading}
-                      className="text-sm text-red-600 hover:text-red-800 disabled:opacity-50"
-                    >
-                      삭제
-                    </button>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">
-                      단계 유형
-                    </label>
-                    <select
-                      className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      value={step.stepType}
-                      onChange={(e) =>
-                        handleStepChange(index, "stepType", e.target.value)
-                      }
-                      disabled={loading}
-                    >
-                      {stepTypes.map((type) => (
-                        <option key={type.value} value={type.value}>
-                          {type.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">
-                      담당자 규칙
-                    </label>
-                    <select
-                      className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      value={step.assigneeRule}
-                      onChange={(e) =>
-                        handleStepChange(index, "assigneeRule", e.target.value)
-                      }
-                      disabled={loading}
-                    >
-                      {assigneeRules.map((rule) => (
-                        <option key={rule.value} value={rule.value}>
-                          {rule.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {step.assigneeRule === "FIXED" && (
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">
-                        고정 담당자 ID *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="직원 ID를 입력하세요"
-                        value={step.targetEmployeeId || ""}
-                        onChange={(e) =>
-                          handleStepChange(
-                            index,
-                            "targetEmployeeId",
-                            e.target.value
-                          )
-                        }
-                        disabled={loading}
-                      />
-                    </div>
-                  )}
-
-                  <div className="md:col-span-2">
-                    <label className="inline-flex items-center">
-                      <input
-                        type="checkbox"
-                        className="form-checkbox rounded border-gray-300"
-                        checked={step.isRequired}
-                        onChange={(e) =>
-                          handleStepChange(
-                            index,
-                            "isRequired",
-                            e.target.checked
-                          )
-                        }
-                        disabled={loading}
-                      />
-                      <span className="ml-2 text-sm text-gray-700">
-                        필수 단계
-                      </span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <ApprovalStepsSection
+          agreementSlots={agreementSlots}
+          approvalSlots={approvalSlots}
+          implementationSteps={implementationSteps}
+          referenceSteps={referenceSteps}
+          loading={loading}
+          onUpdateAgreementSlot={handleUpdateAgreementSlot}
+          onUpdateApprovalSlot={handleUpdateApprovalSlot}
+          onRemoveAgreementSlot={handleRemoveAgreementSlot}
+          onRemoveApprovalSlot={handleRemoveApprovalSlot}
+          onAddImplementationStep={handleAddImplementationStep}
+          onAddReferenceStep={handleAddReferenceStep}
+          onUpdateImplementationStep={handleUpdateImplementationStep}
+          onUpdateReferenceStep={handleUpdateReferenceStep}
+          onRemoveImplementationStep={handleRemoveImplementationStep}
+          onRemoveReferenceStep={handleRemoveReferenceStep}
+          onOpenEmployeePicker={handleOpenEmployeePicker}
+          onOpenDepartmentSelector={handleOpenDepartmentSelector}
+        />
 
         {error && (
           <div className="rounded-md bg-red-50 p-4">
@@ -358,6 +614,44 @@ export default function NewVersionClient({
           </button>
         </div>
       </form>
+
+      {/* 직원 선택 모달 */}
+      <EmployeePickerModal
+        isOpen={showEmployeeModal}
+        onClose={() => {
+          setShowEmployeeModal(false);
+          setCurrentIndex(null);
+        }}
+        onSelect={handleEmployeeSelect}
+        selectedEmployeeIds={
+          currentIndex !== null && currentArea === "agreement"
+            ? ([agreementSlots[currentIndex]?.targetEmployeeId].filter(
+                Boolean
+              ) as string[])
+            : currentIndex !== null && currentArea === "approval"
+            ? ([approvalSlots[currentIndex]?.targetEmployeeId].filter(
+                Boolean
+              ) as string[])
+            : []
+        }
+      />
+
+      {/* 부서 선택 모달 */}
+      <DepartmentSelectorModal
+        isOpen={showDepartmentModal}
+        onClose={() => {
+          setShowDepartmentModal(false);
+          setCurrentIndex(null);
+        }}
+        onSelect={handleDepartmentSelect}
+        selectedDepartmentIds={
+          currentIndex !== null
+            ? referenceSteps[currentIndex]?.selectedDepartments?.map(
+                (d: { id: string }) => d.id
+              ) || []
+            : []
+        }
+      />
     </div>
   );
 }

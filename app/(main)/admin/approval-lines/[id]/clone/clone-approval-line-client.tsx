@@ -2,15 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiClient } from "@/lib/api-client";
+import { clientAuth } from "@/lib/auth-client";
 import type {
   ApprovalLineTemplate,
-  ApprovalLineTemplateVersion,
-} from "@/types/api";
+  TemplateVersionDetail,
+} from "@/types/approval-flow";
 
 interface CloneApprovalLineClientProps {
   originalTemplate: ApprovalLineTemplate;
-  originalVersion: ApprovalLineTemplateVersion | null;
-  token: string;
+  originalVersion: TemplateVersionDetail | null;
 }
 
 export default function CloneApprovalLineClient({
@@ -35,13 +36,24 @@ export default function CloneApprovalLineClient({
 
     setSaving(true);
     try {
-      // TODO: API endpoint for cloning approval line template
-      // await apiClient.cloneApprovalLineTemplate(token, originalTemplate.id, {
-      //   name: templateName,
-      // });
+      if (!originalVersion) {
+        setError("원본 버전 정보가 없습니다.");
+        return;
+      }
 
-      alert("결재선 템플릿 복제 API가 아직 구현되지 않았습니다.");
-      router.push("/admin/approval-lines");
+      const token = clientAuth.getToken();
+      if (!token) {
+        setError("인증 정보가 없습니다. 다시 로그인해주세요.");
+        return;
+      }
+
+      const result = await apiClient.cloneApprovalLineTemplate(token, {
+        baseTemplateVersionId: originalVersion.id,
+        newTemplateName: templateName,
+      });
+
+      alert("결재선 템플릿이 성공적으로 복제되었습니다.");
+      router.push(`/admin/approval-lines/${result.id}`);
     } catch (err: unknown) {
       setError(
         err instanceof Error
@@ -57,7 +69,7 @@ export default function CloneApprovalLineClient({
     const typeMap: Record<string, { label: string; className: string }> = {
       APPROVAL: { label: "결재", className: "bg-blue-100 text-blue-800" },
       AGREEMENT: {
-        label: "협의",
+        label: "합의",
         className: "bg-yellow-100 text-yellow-800",
       },
       IMPLEMENTATION: {
@@ -170,16 +182,26 @@ export default function CloneApprovalLineClient({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2 mb-1">
                         {getStepTypeBadge(step.stepType)}
-                        {step.required && (
+                        {(step.isRequired || step.required) && (
                           <span className="text-xs text-red-600">* 필수</span>
                         )}
                       </div>
                       <p className="text-sm font-medium text-gray-900">
-                        {step.assigneeRule}
+                        {step.assigneeRule === "DRAFTER"
+                          ? "기안자"
+                          : step.assigneeRule === "FIXED" &&
+                            step.defaultApprover
+                          ? `고정직원 (${step.defaultApprover.name})`
+                          : step.assigneeRule === "DRAFTER_SUPERIOR"
+                          ? "상급자"
+                          : step.assigneeRule === "DEPARTMENT_REFERENCE" &&
+                            step.targetDepartment
+                          ? `부서 (${step.targetDepartment.departmentName})`
+                          : step.assigneeRule}
                       </p>
-                      {step.defaultApproverId && (
+                      {step.description && (
                         <p className="text-xs text-gray-500 mt-1">
-                          기본 담당자: {step.defaultApproverId.slice(0, 8)}...
+                          {step.description}
                         </p>
                       )}
                     </div>

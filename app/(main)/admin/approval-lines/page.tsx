@@ -1,5 +1,5 @@
 import { getToken } from "@/lib/auth-server";
-import { apiClient } from "@/lib/api-client";
+import { apiServer } from "@/lib/api-server";
 import { redirect } from "next/navigation";
 import ApprovalLinesListClient from "./approval-lines-list-client";
 
@@ -11,7 +11,7 @@ export default async function ApprovalLinesListPage() {
   }
 
   try {
-    const templates = await apiClient.getApprovalLineTemplates(token);
+    const templates = await apiServer.getApprovalLineTemplates(token);
     return (
       <ApprovalLinesListClient
         initialTemplates={Array.isArray(templates) ? templates : []}

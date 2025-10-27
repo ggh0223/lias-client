@@ -1,5 +1,5 @@
 import { getToken } from "@/lib/auth-server";
-import { apiClient } from "@/lib/api-client";
+import { apiServer } from "@/lib/api-server";
 import { redirect } from "next/navigation";
 import NewFormClient from "./new-form-client";
 
@@ -11,15 +11,14 @@ export default async function NewFormPage() {
   }
 
   try {
-    const templates = await apiClient.getApprovalLineTemplates(token);
+    const templates = await apiServer.getApprovalLineTemplates(token);
     return (
       <NewFormClient
         initialTemplates={Array.isArray(templates) ? templates : []}
-        token={token}
       />
     );
   } catch (error) {
     console.error("Error fetching approval line templates:", error);
-    return <NewFormClient initialTemplates={[]} token={token} />;
+    return <NewFormClient initialTemplates={[]} />;
   }
 }

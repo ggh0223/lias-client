@@ -1,5 +1,5 @@
 import { getToken } from "@/lib/auth-server";
-import { apiClient } from "@/lib/api-client";
+import { apiServer } from "@/lib/api-server";
 import { redirect } from "next/navigation";
 import FormEditClient from "./form-edit-client";
 
@@ -15,14 +15,14 @@ export default async function FormEditPage({
   }
 
   try {
-    const form = await apiClient.getForm(token, params.id);
-    const templates = await apiClient.getApprovalLineTemplates(token);
+    const form = await apiServer.getFormById(token, params.id);
+    const templates = await apiServer.getApprovalLineTemplates(token);
 
     // 현재 버전 정보 조회 (결재선 정보 포함)
     let currentVersion = null;
     if (form.currentVersionId) {
       try {
-        currentVersion = await apiClient.getFormVersion(
+        currentVersion = await apiServer.getFormVersion(
           token,
           params.id,
           form.currentVersionId

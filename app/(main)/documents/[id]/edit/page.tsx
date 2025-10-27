@@ -1,5 +1,5 @@
 import { getToken } from "@/lib/auth-server";
-import { apiClient } from "@/lib/api-client";
+import { apiServer } from "@/lib/api-server";
 import { notFound, redirect } from "next/navigation";
 import EditDocumentClient from "./edit-client";
 
@@ -15,7 +15,7 @@ export default async function EditDocumentPage({
   }
 
   try {
-    const document = await apiClient.getDocument(token, params.id);
+    const document = await apiServer.getDocumentById(token, params.id);
 
     // DRAFT 상태가 아니면 수정 불가
     if (document.status !== "DRAFT") {

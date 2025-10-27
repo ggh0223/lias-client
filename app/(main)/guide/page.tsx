@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import TabNavigationPanel from "./components/tab-navigation-panel";
+import GuideContentSection from "./sections/guide-content-section";
 
 export default function GuidePage() {
   const [activeTab, setActiveTab] = useState<
@@ -18,69 +20,24 @@ export default function GuidePage() {
       </div>
 
       {/* 탭 메뉴 */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab("overview")}
-            className={`${
-              activeTab === "overview"
-                ? "border-blue-500 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-          >
-            시스템 개요
-          </button>
-          <button
-            onClick={() => setActiveTab("flow")}
-            className={`${
-              activeTab === "flow"
-                ? "border-blue-500 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-          >
-            결재 흐름
-          </button>
-          <button
-            onClick={() => setActiveTab("entities")}
-            className={`${
-              activeTab === "entities"
-                ? "border-blue-500 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-          >
-            데이터 구조
-          </button>
-          <button
-            onClick={() => setActiveTab("roles")}
-            className={`${
-              activeTab === "roles"
-                ? "border-blue-500 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-          >
-            결재라인 역할
-          </button>
-          <button
-            onClick={() => setActiveTab("status")}
-            className={`${
-              activeTab === "status"
-                ? "border-blue-500 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-          >
-            문서 상태
-          </button>
-        </nav>
-      </div>
+      <TabNavigationPanel
+        activeTab={activeTab}
+        onTabChange={(tab) =>
+          setActiveTab(
+            tab as "overview" | "flow" | "entities" | "roles" | "status"
+          )
+        }
+      />
 
       {/* 탭 내용 */}
-      <div className="bg-white shadow rounded-lg p-6">
-        {activeTab === "overview" && <OverviewSection />}
-        {activeTab === "flow" && <FlowSection />}
-        {activeTab === "entities" && <EntitiesSection />}
-        {activeTab === "roles" && <RolesSection />}
-        {activeTab === "status" && <StatusSection />}
-      </div>
+      <GuideContentSection
+        activeTab={activeTab}
+        OverviewSection={OverviewSection}
+        FlowSection={FlowSection}
+        EntitiesSection={EntitiesSection}
+        RolesSection={RolesSection}
+        StatusSection={StatusSection}
+      />
     </div>
   );
 }
@@ -188,8 +145,31 @@ function FlowSection() {
         {/* Step 2 */}
         <div className="flex">
           <div className="flex-shrink-0">
-            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-yellow-100 text-yellow-600 font-semibold">
+            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-purple-100 text-purple-600 font-semibold">
               2
+            </div>
+          </div>
+          <div className="ml-4 flex-1">
+            <h3 className="text-lg font-semibold text-gray-900">
+              문서 제출 (PENDING)
+            </h3>
+            <p className="text-gray-600 mt-1">
+              작성자가 결재선을 선택하고 문서를 제출합니다. 이 시점에 결재선이
+              스냅샷으로 고정되며, 문서 번호가 발급됩니다.
+            </p>
+            <div className="mt-2 text-sm text-gray-500">
+              • 결재선 템플릿 선택 → 제출 → 스냅샷 생성 → PENDING 상태로 전환
+            </div>
+          </div>
+        </div>
+
+        <div className="ml-5 border-l-2 border-gray-300 h-8"></div>
+
+        {/* Step 3 */}
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-yellow-100 text-yellow-600 font-semibold">
+              3
             </div>
           </div>
           <div className="ml-4 flex-1">
@@ -202,30 +182,6 @@ function FlowSection() {
             </p>
             <div className="mt-2 text-sm text-gray-500">
               • 협의자 A 검토 → 협의자 B 검토 → 모두 협의 완료
-            </div>
-          </div>
-        </div>
-
-        <div className="ml-5 border-l-2 border-gray-300 h-8"></div>
-
-        {/* Step 3 */}
-        <div className="flex">
-          <div className="flex-shrink-0">
-            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-purple-100 text-purple-600 font-semibold">
-              3
-            </div>
-          </div>
-          <div className="ml-4 flex-1">
-            <h3 className="text-lg font-semibold text-gray-900">
-              문서 제출 (PENDING)
-            </h3>
-            <p className="text-gray-600 mt-1">
-              작성자가 결재선을 선택하고 문서를 제출합니다. 이 시점에 결재선이
-              스냅샷으로 고정되며, 문서 번호가 발급됩니다.
-            </p>
-            <div className="mt-2 text-sm text-gray-500">
-              • 결재선 템플릿 선택 → 제출 → 스냅샷 생성 → 첫 번째 결재자에게
-              전달
             </div>
           </div>
         </div>
@@ -783,11 +739,12 @@ function StatusSection() {
           </div>
           <p className="text-gray-700 mb-2">
             문서가 제출되어 결재가 진행 중인 상태입니다. 결재선이 스냅샷으로
-            고정됩니다.
+            고정되며, 협의자 협의가 필요한 경우 협의 프로세스가 먼저 진행됩니다.
           </p>
           <div className="text-sm text-gray-600">
             <p>
-              <strong>가능한 작업:</strong> 결재자 승인/반려, 작성자 취소
+              <strong>가능한 작업:</strong> 협의자 협의 완료, 결재자 승인/반려,
+              작성자 취소
             </p>
             <p className="mt-1">
               <strong>다음 상태:</strong> APPROVED (모든 결재 완료), REJECTED

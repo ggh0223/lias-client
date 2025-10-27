@@ -1,5 +1,5 @@
 import { getToken } from "@/lib/auth-server";
-import { apiClient } from "@/lib/api-client";
+import { documentService } from "@/services/document.service";
 import MyDocumentsClient from "./my-documents-client";
 
 export default async function MyDocumentsPage() {
@@ -10,7 +10,7 @@ export default async function MyDocumentsPage() {
   }
 
   try {
-    const documents = await apiClient.getMyDocuments(token);
+    const documents = await documentService.fetchMyDocuments(token);
 
     return <MyDocumentsClient initialDocuments={documents} token={token} />;
   } catch (error) {

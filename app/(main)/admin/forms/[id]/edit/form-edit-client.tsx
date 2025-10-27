@@ -2,12 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { Form, FormVersion, ApprovalLineTemplate } from "@/types/api";
+import type {
+  Form,
+  FormVersionDetail,
+  ApprovalLineTemplate,
+} from "@/types/approval-flow";
 import { apiClient } from "@/lib/api-client";
 
 interface FormEditClientProps {
   form: Form;
-  currentVersion: FormVersion | null;
+  currentVersion: FormVersionDetail | null;
   templates: ApprovalLineTemplate[];
   token: string;
 }
@@ -58,7 +62,7 @@ export default function FormEditClient({
       await apiClient.updateFormVersion(token, form.id, {
         versionNote,
         template,
-        lineTemplateVersionId: changeApprovalLine
+        baseLineTemplateVersionId: changeApprovalLine
           ? selectedTemplateVersionId
           : undefined,
       });
@@ -127,11 +131,6 @@ export default function FormEditClient({
               <h3 className="text-sm font-semibold text-gray-900">
                 {currentVersion.approvalLineInfo?.template?.name}
               </h3>
-              {currentVersion.approvalLineInfo?.template?.description && (
-                <p className="text-xs text-gray-600 mt-1">
-                  {currentVersion.approvalLineInfo?.template?.description}
-                </p>
-              )}
               <div className="flex items-center gap-2 mt-2">
                 <span className="text-xs text-gray-500">
                   버전: v
@@ -181,12 +180,12 @@ export default function FormEditClient({
                               {step
                                 ? step.assigneeRule === "DRAFTER"
                                   ? "기안자"
-                                  : step.assigneeRule === "DEPARTMENT_HEAD"
-                                  ? "부서장"
-                                  : step.assigneeRule === "SUPERIOR"
+                                  : step.assigneeRule === "DRAFTER_SUPERIOR"
                                   ? "상급자"
                                   : step.assigneeRule === "FIXED"
                                   ? "고정직원"
+                                  : step.assigneeRule === "DEPARTMENT_REFERENCE"
+                                  ? "부서"
                                   : step.assigneeRule
                                 : ""}
                             </div>
@@ -225,12 +224,12 @@ export default function FormEditClient({
                               {step
                                 ? step.assigneeRule === "DRAFTER"
                                   ? "기안자"
-                                  : step.assigneeRule === "DEPARTMENT_HEAD"
-                                  ? "부서장"
-                                  : step.assigneeRule === "SUPERIOR"
+                                  : step.assigneeRule === "DRAFTER_SUPERIOR"
                                   ? "상급자"
                                   : step.assigneeRule === "FIXED"
                                   ? "고정직원"
+                                  : step.assigneeRule === "DEPARTMENT_REFERENCE"
+                                  ? "부서"
                                   : step.assigneeRule
                                 : ""}
                             </div>
@@ -268,12 +267,13 @@ export default function FormEditClient({
                                   <div className="text-xs font-medium">
                                     {step.assigneeRule === "DRAFTER"
                                       ? "기안자"
-                                      : step.assigneeRule === "DEPARTMENT_HEAD"
-                                      ? "부서장"
-                                      : step.assigneeRule === "SUPERIOR"
+                                      : step.assigneeRule === "DRAFTER_SUPERIOR"
                                       ? "상급자"
                                       : step.assigneeRule === "FIXED"
                                       ? "고정직원"
+                                      : step.assigneeRule ===
+                                        "DEPARTMENT_REFERENCE"
+                                      ? "부서"
                                       : step.assigneeRule}
                                   </div>
                                   <div className="text-xs text-gray-500">
@@ -319,12 +319,13 @@ export default function FormEditClient({
                                   <div className="text-xs font-medium">
                                     {step.assigneeRule === "DRAFTER"
                                       ? "기안자"
-                                      : step.assigneeRule === "DEPARTMENT_HEAD"
-                                      ? "부서장"
-                                      : step.assigneeRule === "SUPERIOR"
+                                      : step.assigneeRule === "DRAFTER_SUPERIOR"
                                       ? "상급자"
                                       : step.assigneeRule === "FIXED"
                                       ? "고정직원"
+                                      : step.assigneeRule ===
+                                        "DEPARTMENT_REFERENCE"
+                                      ? "부서"
                                       : step.assigneeRule}
                                   </div>
                                   <div className="text-xs text-gray-500">

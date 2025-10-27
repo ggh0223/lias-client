@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
-import type { Document } from "@/types/api";
+import type { Document } from "@/types/document";
 
 interface EditDocumentClientProps {
   document: Document;

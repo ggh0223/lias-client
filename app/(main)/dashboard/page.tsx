@@ -1,5 +1,6 @@
 import { getToken, getUser } from "@/lib/auth-server";
-import { apiClient } from "@/lib/api-client";
+import { approvalProcessService } from "@/services/approval-process.service";
+import { documentService } from "@/services/document.service";
 import DashboardClient from "./dashboard-client";
 
 export default async function DashboardPage() {
@@ -12,10 +13,10 @@ export default async function DashboardPage() {
 
   try {
     // 내 결재 대기 목록
-    const pendingApprovals = await apiClient.getMyPendingApprovals(token);
+    const pendingApprovals = await approvalProcessService.fetchMyPending(token);
 
     // 내 문서 목록
-    const myDocuments = await apiClient.getMyDocuments(token);
+    const myDocuments = await documentService.fetchMyDocuments(token);
 
     // 통계 데이터 계산
     const stats = {
