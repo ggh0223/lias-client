@@ -178,22 +178,25 @@ export default function EditableApprovalPanel({
             departments: [],
           }));
 
-        // 모든 steps에서 부서 정보 수집
-        const selectedDepartments = steps
-          .filter(
-            (step) =>
-              (step.departmentName || step.approverDepartmentName) &&
-              step.departmentName !== "미지정" &&
-              step.approverDepartmentName !== "미지정"
-          )
-          .map((step) => {
-            const deptName =
-              step.departmentName || step.approverDepartmentName || "";
-            return {
-              id: `dept-${deptName}`,
-              name: deptName,
-            };
-          });
+        // DEPARTMENT_REFERENCE 규칙일 때만 부서 정보 수집
+        const selectedDepartments =
+          assigneeRule === "DEPARTMENT_REFERENCE"
+            ? steps
+                .filter(
+                  (step) =>
+                    (step.departmentName || step.approverDepartmentName) &&
+                    step.departmentName !== "미지정" &&
+                    step.approverDepartmentName !== "미지정"
+                )
+                .map((step) => {
+                  const deptName =
+                    step.departmentName || step.approverDepartmentName || "";
+                  return {
+                    id: `dept-${deptName}`,
+                    name: deptName,
+                  };
+                })
+            : [];
 
         return {
           id: `reference-${order}`,
@@ -272,20 +275,39 @@ export default function EditableApprovalPanel({
 
       // 참조 단계
       state.referenceSteps.forEach((step) => {
-        customSteps.push({
+        const stepData: CustomApprovalStep = {
           stepOrder: stepOrder++,
           stepType: "REFERENCE",
           assigneeRule: step.assigneeRule,
           isRequired: step.isRequired,
-          employeeId:
-            step.selectedEmployees && step.selectedEmployees.length > 0
-              ? step.selectedEmployees[0].id
-              : undefined,
-          departmentId:
-            step.selectedDepartments && step.selectedDepartments.length > 0
-              ? step.selectedDepartments[0].id
-              : undefined,
-        });
+        };
+
+        // UUID 형식 확인을 위한 정규식
+        const uuidRegex =
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+        // assigneeRule에 따라 데이터 설정
+        if (step.assigneeRule === "DEPARTMENT_REFERENCE") {
+          // 부서 전체 참조일 때만 부서 ID 포함
+          if (step.selectedDepartments && step.selectedDepartments.length > 0) {
+            const deptId = step.selectedDepartments[0].id;
+            // UUID 형식일 때만 포함
+            if (deptId && uuidRegex.test(deptId)) {
+              stepData.departmentId = deptId;
+            }
+          }
+        } else if (step.assigneeRule === "FIXED") {
+          // 고정 담당자일 때는 직원 ID만 포함
+          if (step.selectedEmployees && step.selectedEmployees.length > 0) {
+            const empId = step.selectedEmployees[0].id;
+            // UUID 형식일 때만 포함
+            if (empId && uuidRegex.test(empId)) {
+              stepData.employeeId = empId;
+            }
+          }
+        }
+
+        customSteps.push(stepData);
       });
 
       onApprovalStepsChange(customSteps);
